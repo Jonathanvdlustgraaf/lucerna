@@ -1,10 +1,77 @@
 <script lang="ts">
 	import type { ParsedLine } from '$lib/services/markdown';
 
-	let { line, showLineNumbers = false }: { line: ParsedLine; showLineNumbers?: boolean } = $props();
+	let {
+		line,
+		showLineNumbers = false,
+		isCurrent = false,
+		spotlight = false,
+		spotlightAbove = 3,
+		spotlightBelow = 2,
+		cursorLine = 1,
+		selectLine = 'off' as 'off' | 'bright' | 'underline' | 'weight' | 'glow'
+	}: {
+		line: ParsedLine;
+		showLineNumbers?: boolean;
+		isCurrent?: boolean;
+		spotlight?: boolean;
+		spotlightAbove?: number;
+		spotlightBelow?: number;
+		cursorLine?: number;
+		selectLine?: 'off' | 'bright' | 'underline' | 'weight' | 'glow';
+	} = $props();
+
+	let lineStyle = $derived.by(() => {
+		let styles: string[] = [];
+
+		// Opacity and spotlight border
+		if (spotlight) {
+			if (isCurrent) {
+				styles.push('opacity: 1');
+				styles.push('border-left: 2px solid rgba(212, 168, 67, 0.55)');
+				styles.push('padding-left: 6px');
+			} else {
+				const distance = Math.abs(line.number - cursorLine);
+				const reach = distance <= 0 ? 0 : (line.number < cursorLine ? spotlightAbove : spotlightBelow);
+				if (reach > 0 && distance <= reach) {
+					const opacity = 0.9 - (distance / reach) * 0.2;
+					styles.push(`opacity: ${opacity.toFixed(2)}`);
+				} else {
+					styles.push('opacity: 0.2');
+				}
+
+				// Boundary hairlines
+				const aboveBoundary = line.number < cursorLine && distance === spotlightAbove;
+				const belowBoundary = line.number > cursorLine && distance === spotlightBelow;
+				if (aboveBoundary) {
+					styles.push('border-top: 1px solid rgba(212, 168, 67, 0.08)');
+				}
+				if (belowBoundary) {
+					styles.push('border-bottom: 1px solid rgba(212, 168, 67, 0.08)');
+				}
+			}
+		}
+
+		// Select-line styles (current line only)
+		if (isCurrent && selectLine !== 'off') {
+			switch (selectLine) {
+				case 'underline':
+					styles.push('border-bottom: 1px solid rgba(212, 168, 67, 0.4)');
+					break;
+				case 'weight':
+					styles.push('font-weight: 500');
+					break;
+				case 'glow':
+					styles.push('background: rgba(212, 168, 67, 0.04)');
+					break;
+			}
+		}
+
+		return styles.join('; ');
+	});
 </script>
 
-<div class="line" data-type={line.type}>
+<div class="line" data-type={line.type} data-linenum={line.number} style={lineStyle}>
 	{#if showLineNumbers}
 		<span class="gutter">{line.number}</span>
 	{/if}
@@ -22,6 +89,7 @@
 		display: flex;
 		min-height: 1.75em;
 		line-height: 1.75;
+		transition: opacity 150ms ease-out;
 	}
 	.gutter {
 		width: 48px;
