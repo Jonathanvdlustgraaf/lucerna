@@ -11,6 +11,7 @@
 		cursorLine = 1,
 		selectLine = 'off' as 'off' | 'bright' | 'underline' | 'weight' | 'glow',
 		folded = false,
+		marked = false,
 		onfold
 	}: {
 		line: ParsedLine;
@@ -22,6 +23,7 @@
 		cursorLine?: number;
 		selectLine?: 'off' | 'bright' | 'underline' | 'weight' | 'glow';
 		folded?: boolean;
+		marked?: boolean;
 		onfold?: () => void;
 	} = $props();
 
@@ -76,6 +78,9 @@
 </script>
 
 <div class="line" data-type={line.type} data-linenum={line.number} style={lineStyle}>
+	{#if marked}
+		<span class="mark-dot"></span>
+	{/if}
 	{#if showLineNumbers}
 		<span class="gutter">
 			{#if (line.type === 'h2' || line.type === 'h3') && onfold}
@@ -101,6 +106,17 @@
 		min-height: 1.75em;
 		line-height: 1.75;
 		transition: opacity 150ms ease-out;
+		position: relative;
+	}
+	.mark-dot {
+		width: 4px;
+		height: 4px;
+		border-radius: 50%;
+		background: var(--accent);
+		position: absolute;
+		left: 4px;
+		top: 50%;
+		transform: translateY(-50%);
 	}
 	.gutter {
 		position: relative;
