@@ -78,6 +78,35 @@
                 ctrl: true,
                 handler: () => saveFile(),
                 description: 'Save file'
+            }),
+            register({
+                key: 's',
+                ctrl: true,
+                shift: true,
+                handler: () => tools.toggle('spotlight'),
+                description: 'Toggle spotlight'
+            }),
+            register({
+                key: 'l',
+                ctrl: true,
+                handler: () => tools.toggle('selectLine'),
+                description: 'Toggle select-line cursor'
+            }),
+            register({
+                key: 'ArrowUp',
+                ctrl: true,
+                handler: () => {
+                    if (tools.isActive('spotlight')) tools.adjustSpotlight('up');
+                },
+                description: 'Expand spotlight up'
+            }),
+            register({
+                key: 'ArrowDown',
+                ctrl: true,
+                handler: () => {
+                    if (tools.isActive('spotlight')) tools.adjustSpotlight('down');
+                },
+                description: 'Expand spotlight down'
             })
         ];
         return () => {
@@ -99,9 +128,24 @@
                     onchange={handleContentChange}
                 />
             {:else}
-                <div class="content">
+                <div class="content" onclick={(e) => {
+                    const lineEl = (e.target as HTMLElement).closest('[data-linenum]');
+                    if (lineEl) {
+                        const num = parseInt((lineEl as HTMLElement).dataset.linenum || '1');
+                        editor.setCursor(num, 1);
+                    }
+                }}>
                     {#each lines as line (line.number)}
-                        <Line {line} {showLineNumbers} />
+                        <Line
+                            {line}
+                            {showLineNumbers}
+                            isCurrent={line.number === editor.cursorLine}
+                            spotlight={tools.isActive('spotlight')}
+                            spotlightAbove={tools.spotlightAbove}
+                            spotlightBelow={tools.spotlightBelow}
+                            cursorLine={editor.cursorLine}
+                            selectLine={tools.isActive('selectLine') ? tools.selectLineVariant : 'off'}
+                        />
                     {/each}
                 </div>
             {/if}
