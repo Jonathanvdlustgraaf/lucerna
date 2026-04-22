@@ -1,8 +1,7 @@
 <script lang="ts">
 	import { editor } from '$lib/stores/editor.svelte';
 	import { git } from '$lib/stores/git.svelte';
-
-	let { toolStatus = '' }: { toolStatus?: string } = $props();
+	import { tools } from '$lib/stores/tools.svelte';
 
 	let filePath = $derived(editor.activeFile?.path ?? 'No file open');
 	let modeLabel = $derived(editor.editMode ? 'EDIT' : 'VIEW');
@@ -16,15 +15,26 @@
 					? `\u2193${git.behind}`
 					: '\u2713'
 	);
+
+	let spotlightStatus = $derived(
+		tools.isActive('spotlight')
+			? `SPOTLIGHT ${tools.spotlightAbove}up ${tools.spotlightBelow}down`
+			: ''
+	);
+	let selectLineStatus = $derived(tools.isActive('selectLine') ? 'SELECT-LINE' : '');
 </script>
 
 <div class="status-bar">
 	<span class="left">{filePath}</span>
 	<span class="sep">·</span>
 	<span class="mode">{modeLabel}</span>
-	{#if toolStatus}
+	{#if spotlightStatus}
 		<span class="sep">·</span>
-		<span class="center">{toolStatus}</span>
+		<span class="center">{spotlightStatus}</span>
+	{/if}
+	{#if selectLineStatus}
+		<span class="sep">·</span>
+		<span class="center">{selectLineStatus}</span>
 	{/if}
 	<span class="sep">·</span>
 	<span class="right">
