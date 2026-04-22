@@ -191,6 +191,40 @@
                 shift: true,
                 handler: () => tools.toggle('zenMode'),
                 description: 'Toggle zen mode'
+            }),
+            register({
+                key: 'm',
+                ctrl: true,
+                handler: () => {
+                    const file = editor.activeFile;
+                    if (file) editor.toggleMark(file.path, editor.cursorLine);
+                },
+                description: 'Toggle mark on current line'
+            }),
+            register({
+                key: "'",
+                ctrl: true,
+                handler: () => {
+                    const file = editor.activeFile;
+                    if (file) {
+                        const next = editor.nextMark(file.path);
+                        if (next !== null) editor.setCursor(next, 1);
+                    }
+                },
+                description: 'Jump to next mark'
+            }),
+            register({
+                key: "'",
+                ctrl: true,
+                shift: true,
+                handler: () => {
+                    const file = editor.activeFile;
+                    if (file) {
+                        const prev = editor.prevMark(file.path);
+                        if (prev !== null) editor.setCursor(prev, 1);
+                    }
+                },
+                description: 'Jump to previous mark'
             })
         ];
         const cmdUnsubs = [
@@ -242,6 +276,7 @@
                                     spotlightBelow={tools.spotlightBelow}
                                     cursorLine={editor.cursorLine}
                                     selectLine={tools.isActive('selectLine') ? tools.selectLineVariant : 'off'}
+                                    marked={editor.activeFile ? editor.getMarks(editor.activeFile.path).includes(line.number) : false}
                                 />
                             {/each}
                         </div>
@@ -264,6 +299,7 @@
                                 spotlightBelow={tools.spotlightBelow}
                                 cursorLine={editor.cursorLine}
                                 selectLine={tools.isActive('selectLine') ? tools.selectLineVariant : 'off'}
+                                marked={editor.activeFile ? editor.getMarks(editor.activeFile.path).includes(line.number) : false}
                             />
                         {/each}
                     </div>
