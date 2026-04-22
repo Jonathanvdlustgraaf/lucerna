@@ -37,6 +37,26 @@ class ToolsState {
 			this.active[key] = false;
 		}
 	}
+
+	spotlightAbove = $state(3);
+	spotlightBelow = $state(2);
+	selectLineVariant = $state<'bright' | 'underline' | 'weight' | 'glow'>('bright');
+
+	adjustSpotlight(direction: 'up' | 'down') {
+		if (direction === 'up') {
+			this.spotlightAbove = Math.min(this.spotlightAbove + 1, 20);
+		} else {
+			this.spotlightBelow = Math.min(this.spotlightBelow + 1, 20);
+		}
+	}
+
+	shrinkSpotlight(direction: 'up' | 'down') {
+		if (direction === 'up') {
+			this.spotlightAbove = Math.max(this.spotlightAbove - 1, 0);
+		} else {
+			this.spotlightBelow = Math.max(this.spotlightBelow - 1, 0);
+		}
+	}
 }
 
 export const tools = new ToolsState();
