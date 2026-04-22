@@ -19,9 +19,49 @@
 
 	let commitMessage = $state('');
 	let feedback = $state('');
+
+	async function handleCommit() {
+		if (!commitMessage.trim()) return;
+		try {
+			oncommit(commitMessage);
+			feedback = 'Committed successfully';
+			commitMessage = '';
+			setTimeout(() => { feedback = ''; }, 3000);
+		} catch {
+			feedback = 'Commit failed';
+			setTimeout(() => { feedback = ''; }, 3000);
+		}
+	}
+
+	async function handlePush() {
+		try {
+			onpush();
+			feedback = 'Pushed successfully';
+			setTimeout(() => { feedback = ''; }, 3000);
+		} catch {
+			feedback = 'Push failed';
+			setTimeout(() => { feedback = ''; }, 3000);
+		}
+	}
+
+	async function handlePull() {
+		try {
+			onpull();
+			feedback = 'Pulled successfully';
+			setTimeout(() => { feedback = ''; }, 3000);
+		} catch {
+			feedback = 'Pull failed';
+			setTimeout(() => { feedback = ''; }, 3000);
+		}
+	}
 </script>
 
-<svelte:window onkeydown={(e) => { if (e.key === 'Escape') onclose(); }} />
+<svelte:window onkeydown={(e) => {
+	if (e.key === 'Escape') onclose();
+	if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && commitMessage.trim()) {
+		handleCommit();
+	}
+}} />
 
 <div class="git-panel">
 	<header class="panel-header">
@@ -49,12 +89,12 @@
 			<div class="commit-actions">
 				<button
 					class="btn-primary"
-					onclick={() => { oncommit(commitMessage); commitMessage = ''; }}
+					onclick={handleCommit}
 				>
 					Commit
 				</button>
-				<button class="btn-ghost" onclick={onpush}>Push</button>
-				<button class="btn-ghost" onclick={onpull}>Pull</button>
+				<button class="btn-ghost" onclick={handlePush}>Push</button>
+				<button class="btn-ghost" onclick={handlePull}>Pull</button>
 			</div>
 		</div>
 
