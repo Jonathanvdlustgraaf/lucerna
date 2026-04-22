@@ -117,9 +117,20 @@
                 description: 'Toggle command palette'
             })
         ];
+        const cmdUnsubs = [
+            registerCommand({ id: 'toggle-spotlight', label: 'Toggle Spotlight', description: 'Focus window around cursor', shortcut: 'Ctrl+Shift+S', handler: () => tools.toggle('spotlight') }),
+            registerCommand({ id: 'toggle-select-line', label: 'Toggle Select-Line', description: 'Highlight current line', shortcut: 'Ctrl+L', handler: () => tools.toggle('selectLine') }),
+            registerCommand({ id: 'toggle-line-numbers', label: 'Toggle Line Numbers', description: 'Show/hide gutter', shortcut: 'Ctrl+G', handler: () => tools.toggle('lineNumbers') }),
+            registerCommand({ id: 'toggle-zen', label: 'Toggle Zen Mode', description: 'Fullscreen focus', shortcut: 'Ctrl+Shift+Z', handler: () => tools.toggle('zenMode') }),
+            registerCommand({ id: 'toggle-filter', label: 'Toggle Filter', description: 'Section filter sidebar', shortcut: 'Ctrl+Shift+F', handler: () => tools.toggle('filter') }),
+            registerCommand({ id: 'toggle-git', label: 'Toggle Git Panel', description: 'Commit, push, pull', shortcut: 'Ctrl+Shift+G', handler: () => tools.toggle('gitPanel') }),
+            registerCommand({ id: 'toggle-edit', label: 'Toggle Edit Mode', description: 'Switch view/edit', shortcut: 'Ctrl+E', handler: () => editor.toggleEdit() }),
+            registerCommand({ id: 'save', label: 'Save File', description: 'Save current file', shortcut: 'Ctrl+S', handler: () => saveFile() })
+        ];
         return () => {
             cleanupAutosave();
             unsubs.forEach((fn) => fn());
+            cmdUnsubs.forEach((fn) => fn());
         };
     });
 </script>
