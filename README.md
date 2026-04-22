@@ -1,42 +1,39 @@
-# sv
+# Lucerna
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+A git-native markdown editor with a spotlight-first design. Minimal by default, powerful on demand.
 
-## Creating a project
+The name comes from the Latin word for a portable oil lamp.
 
-If you're seeing this, you've probably already done this step. Congrats!
+## Quick Start
 
-```sh
-# create a new project
-npx sv create my-app
-```
+```bash
+# Clone and install
+git clone https://github.com/Jonathanvdlustgraaf/lucerna.git
+cd lucerna
+npm install
 
-To recreate this project with the same configuration:
+# Point to a markdown repo
+cp .env.example .env
+# Edit .env: set REPO_PATH to your git repo
 
-```sh
-# recreate this project
-npx sv@0.15.1 create --template minimal --types ts --add prettier eslint vitest="usages:unit,component" --no-download-check --no-install lucerna
-```
-
-## Developing
-
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
-
-```sh
+# Run
 npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
 ```
 
-## Building
+## Features
 
-To create a production version of your app:
+- **Git-native** - reads, writes, commits, and pushes to any markdown repo
+- **Spotlight mode** - configurable focus window that fades surrounding context
+- **Summon, don't display** - every tool is hidden until invoked by shortcut
+- **Export** - PDF and Word with Dutch business document templates
+- **Dark theme** - warm amber accent on a dark canvas
 
-```sh
-npm run build
-```
+## Tech Stack
 
-You can preview the production build with `npm run preview`.
+- [SvelteKit](https://kit.svelte.dev/) with Node adapter
+- [simple-git](https://github.com/steveukx/git-js) for git operations
+- [Sora](https://fonts.google.com/specimen/Sora), [Inter](https://rsms.me/inter/), [JetBrains Mono](https://www.jetbrains.com/lp/mono/) (self-hosted)
 
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+## License
+
+MIT
