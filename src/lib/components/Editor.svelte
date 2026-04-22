@@ -5,6 +5,7 @@
     import FilterSidebar from './FilterSidebar.svelte';
     import Line from './Line.svelte';
     import EditableArea from './EditableArea.svelte';
+    import ZenMode from './ZenMode.svelte';
     import { editor } from '$lib/stores/editor.svelte';
     import { tools } from '$lib/stores/tools.svelte';
     import { register, handleKeydown } from '$lib/services/keyboard';
@@ -183,6 +184,13 @@
                 shift: true,
                 handler: () => tools.toggle('filter'),
                 description: 'Toggle filter sidebar'
+            }),
+            register({
+                key: 'z',
+                ctrl: true,
+                shift: true,
+                handler: () => tools.toggle('zenMode'),
+                description: 'Toggle zen mode'
             })
         ];
         const cmdUnsubs = [
@@ -215,26 +223,51 @@
                     onchange={handleContentChange}
                 />
             {:else}
-                <div class="content" onclick={(e) => {
-                    const lineEl = (e.target as HTMLElement).closest('[data-linenum]');
-                    if (lineEl) {
-                        const num = parseInt((lineEl as HTMLElement).dataset.linenum || '1');
-                        editor.setCursor(num, 1);
-                    }
-                }}>
-                    {#each filteredLines as line, i (line.number > 0 ? line.number : `collapsed-${i}`)}
-                        <Line
-                            {line}
-                            {showLineNumbers}
-                            isCurrent={line.number === editor.cursorLine}
-                            spotlight={tools.isActive('spotlight')}
-                            spotlightAbove={tools.spotlightAbove}
-                            spotlightBelow={tools.spotlightBelow}
-                            cursorLine={editor.cursorLine}
-                            selectLine={tools.isActive('selectLine') ? tools.selectLineVariant : 'off'}
-                        />
-                    {/each}
-                </div>
+                {#if tools.isActive('zenMode')}
+                    <ZenMode>
+                        <div class="content" onclick={(e) => {
+                            const lineEl = (e.target as HTMLElement).closest('[data-linenum]');
+                            if (lineEl) {
+                                const num = parseInt((lineEl as HTMLElement).dataset.linenum || '1');
+                                editor.setCursor(num, 1);
+                            }
+                        }}>
+                            {#each filteredLines as line, i (line.number > 0 ? line.number : `collapsed-${i}`)}
+                                <Line
+                                    {line}
+                                    {showLineNumbers}
+                                    isCurrent={line.number === editor.cursorLine}
+                                    spotlight={tools.isActive('spotlight')}
+                                    spotlightAbove={tools.spotlightAbove}
+                                    spotlightBelow={tools.spotlightBelow}
+                                    cursorLine={editor.cursorLine}
+                                    selectLine={tools.isActive('selectLine') ? tools.selectLineVariant : 'off'}
+                                />
+                            {/each}
+                        </div>
+                    </ZenMode>
+                {:else}
+                    <div class="content" onclick={(e) => {
+                        const lineEl = (e.target as HTMLElement).closest('[data-linenum]');
+                        if (lineEl) {
+                            const num = parseInt((lineEl as HTMLElement).dataset.linenum || '1');
+                            editor.setCursor(num, 1);
+                        }
+                    }}>
+                        {#each filteredLines as line, i (line.number > 0 ? line.number : `collapsed-${i}`)}
+                            <Line
+                                {line}
+                                {showLineNumbers}
+                                isCurrent={line.number === editor.cursorLine}
+                                spotlight={tools.isActive('spotlight')}
+                                spotlightAbove={tools.spotlightAbove}
+                                spotlightBelow={tools.spotlightBelow}
+                                cursorLine={editor.cursorLine}
+                                selectLine={tools.isActive('selectLine') ? tools.selectLineVariant : 'off'}
+                            />
+                        {/each}
+                    </div>
+                {/if}
             {/if}
         {:else}
             <div class="empty">
