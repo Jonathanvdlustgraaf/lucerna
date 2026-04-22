@@ -3,11 +3,13 @@
     import StatusBar from './StatusBar.svelte';
     import CommandPalette from './CommandPalette.svelte';
     import FilterSidebar from './FilterSidebar.svelte';
+    import GitPanel from './GitPanel.svelte';
     import Line from './Line.svelte';
     import EditableArea from './EditableArea.svelte';
     import ZenMode from './ZenMode.svelte';
     import { editor } from '$lib/stores/editor.svelte';
     import { tools } from '$lib/stores/tools.svelte';
+    import { git } from '$lib/stores/git.svelte';
     import { register, handleKeydown } from '$lib/services/keyboard';
     import { registerCommand } from '$lib/services/commands';
     import { setupAutosave, triggerAutosave } from '$lib/services/autosave';
@@ -112,6 +114,7 @@
         });
         if (res.ok) {
             editor.markClean(file.path);
+            git.refresh();
         }
     }
 
@@ -122,8 +125,22 @@
 
     let markdownFiles = $derived(fileTree.filter((f) => f.type === 'file'));
 
+    let gitLog = $state<Array<{ sha: string; message: string; author: string; date: string }>>([]);
+
+    async function refreshGitLog() {
+        const path = editor.activeFile?.path;
+        const res = await fetch(path ? `/api/git/log/${encodeURIComponent(path)}` : '/api/git/log/');
+        if (res.ok) {
+            const data = await res.json();
+            gitLog = data.log;
+        }
+    }
+
     onMount(() => {
         const cleanupAutosave = setupAutosave(saveFile);
+        const gitInterval = setInterval(() => {
+            if (tools.isActive('gitPanel')) git.refresh();
+        }, 30000);
         const unsubs = [
             register({
                 key: 'g',
@@ -193,6 +210,19 @@
                 description: 'Toggle zen mode'
             }),
             register({
+                key: 'g',
+                ctrl: true,
+                shift: true,
+                handler: () => {
+                    tools.toggle('gitPanel');
+                    if (tools.isActive('gitPanel')) {
+                        git.refresh();
+                        refreshGitLog();
+                    }
+                },
+                description: 'Toggle git panel'
+            }),
+            register({
                 key: 'm',
                 ctrl: true,
                 handler: () => {
@@ -239,6 +269,7 @@
         ];
         return () => {
             cleanupAutosave();
+            clearInterval(gitInterval);
             unsubs.forEach((fn) => fn());
             cmdUnsubs.forEach((fn) => fn());
         };
@@ -328,6 +359,30 @@
             checkedSections={editor.getChecked(editor.activeFile.path)}
             ontoggle={(lineNumber) => editor.toggleSection(editor.activeFile!.path, lineNumber)}
             onclose={() => tools.dismiss('filter')}
+        />
+    {/if}
+    {#if tools.isActive('gitPanel')}
+        <GitPanel
+            modified={git.modified}
+            log={gitLog}
+            oncommit={async (message) => {
+                await fetch('/api/git/commit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message })
+                });
+                await git.refresh();
+                await refreshGitLog();
+            }}
+            onpush={async () => {
+                await fetch('/api/git/push', { method: 'POST' });
+                await git.refresh();
+            }}
+            onpull={async () => {
+                await fetch('/api/git/pull', { method: 'POST' });
+                await git.refresh();
+            }}
+            onclose={() => tools.dismiss('gitPanel')}
         />
     {/if}
     {#if tools.isActive('commandPalette')}
