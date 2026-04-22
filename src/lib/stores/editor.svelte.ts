@@ -10,6 +10,7 @@ class EditorState {
 	activeIndex = $state(0);
 	cursorLine = $state(1);
 	cursorCol = $state(1);
+	editMode = $state(false);
 
 	get activeFile(): OpenFile | undefined {
 		return this.files[this.activeIndex];
@@ -51,6 +52,18 @@ class EditorState {
 	markClean(path: string) {
 		const file = this.files.find((f) => f.path === path);
 		if (file) file.dirty = false;
+	}
+
+	toggleEdit() {
+		this.editMode = !this.editMode;
+	}
+
+	updateContent(content: string) {
+		const file = this.activeFile;
+		if (file) {
+			file.content = content;
+			file.dirty = true;
+		}
 	}
 }
 
