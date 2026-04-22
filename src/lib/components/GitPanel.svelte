@@ -1,4 +1,6 @@
 <script lang="ts">
+	import DiffView from './DiffView.svelte';
+
 	let {
 		modified = [] as string[],
 		log = [] as Array<{ sha: string; message: string; author: string; date: string }>,
@@ -19,6 +21,16 @@
 
 	let commitMessage = $state('');
 	let feedback = $state('');
+	let selectedDiff = $state('');
+
+	async function selectCommit(sha: string) {
+		const res = await fetch(`/api/git/diff/${sha}`);
+		if (res.ok) {
+			const data = await res.json();
+			selectedDiff = data.diff;
+		}
+		onselect?.(sha);
+	}
 
 	async function handleCommit() {
 		if (!commitMessage.trim()) return;
@@ -105,7 +117,7 @@
 		<div class="section">
 			<h3 class="section-title">History</h3>
 			{#each log as entry}
-				<button class="log-entry" onclick={() => onselect?.(entry.sha)}>
+				<button class="log-entry" onclick={() => selectCommit(entry.sha)}>
 					<span class="sha">{entry.sha.slice(0, 7)}</span>
 					<span class="msg">{entry.message}</span>
 					<span class="meta">{entry.author} · {entry.date}</span>
@@ -115,6 +127,16 @@
 				<div class="empty-hint">No history</div>
 			{/if}
 		</div>
+
+		{#if selectedDiff}
+			<div class="diff-section">
+				<div class="section-header">
+					<h3 class="section-title">Diff</h3>
+					<button class="btn-ghost" onclick={() => { selectedDiff = ''; }}>Close</button>
+				</div>
+				<DiffView diff={selectedDiff} />
+			</div>
+		{/if}
 	</div>
 
 	<footer class="panel-footer">
@@ -334,5 +356,23 @@
 		font-size: 11px;
 		color: var(--muted);
 		opacity: 0.6;
+	}
+
+	.diff-section {
+		border-top: 1px solid var(--border);
+		overflow-x: auto;
+	}
+
+	.section-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: var(--space-xs) var(--space-md);
+		border-bottom: 1px solid var(--border);
+	}
+
+	.section-header .section-title {
+		margin: 0;
+		padding: 0;
 	}
 </style>
