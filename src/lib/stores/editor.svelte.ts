@@ -79,6 +79,34 @@ class EditorState {
 		const current = this.checkedSections[path][lineNumber];
 		this.checkedSections[path][lineNumber] = current === undefined ? false : !current;
 	}
+
+	marks = $state<Record<string, number[]>>({});
+
+	toggleMark(path: string, line: number) {
+		if (!this.marks[path]) this.marks[path] = [];
+		const idx = this.marks[path].indexOf(line);
+		if (idx >= 0) {
+			this.marks[path].splice(idx, 1);
+		} else {
+			this.marks[path].push(line);
+		}
+	}
+
+	getMarks(path: string): number[] {
+		return this.marks[path] || [];
+	}
+
+	nextMark(path: string): number | null {
+		const m = this.getMarks(path).sort((a, b) => a - b);
+		const current = this.cursorLine;
+		return m.find((n) => n > current) ?? m[0] ?? null;
+	}
+
+	prevMark(path: string): number | null {
+		const m = this.getMarks(path).sort((a, b) => b - a);
+		const current = this.cursorLine;
+		return m.find((n) => n < current) ?? m[0] ?? null;
+	}
 }
 
 export const editor = new EditorState();
