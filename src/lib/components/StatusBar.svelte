@@ -16,6 +16,12 @@
 					: '\u2713'
 	);
 
+	let splitPath = $derived(
+		tools.isActive('splitView') && editor.splitFile
+			? ` | ${editor.splitFile.path}`
+			: ''
+	);
+
 	let spotlightStatus = $derived(
 		tools.isActive('spotlight')
 			? `SPOTLIGHT ${tools.spotlightAbove}up ${tools.spotlightBelow}down`
@@ -25,7 +31,7 @@
 </script>
 
 <div class="status-bar">
-	<span class="left">{filePath}</span>
+	<span class="left">{filePath}{splitPath}</span>
 	<span class="sep">·</span>
 	<span class="mode">{modeLabel}</span>
 	{#if spotlightStatus}

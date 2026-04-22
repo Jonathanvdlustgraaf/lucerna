@@ -5,6 +5,7 @@
     import FilterSidebar from './FilterSidebar.svelte';
     import GitPanel from './GitPanel.svelte';
     import Line from './Line.svelte';
+    import SplitView from './SplitView.svelte';
     import EditableArea from './EditableArea.svelte';
     import ZenMode from './ZenMode.svelte';
     import { editor } from '$lib/stores/editor.svelte';
@@ -255,6 +256,23 @@
                     }
                 },
                 description: 'Jump to previous mark'
+            }),
+            register({
+                key: '\\',
+                ctrl: true,
+                handler: () => {
+                    if (tools.isActive('splitView')) {
+                        tools.dismiss('splitView');
+                        editor.setSplit(null);
+                    } else {
+                        const nextIndex = (editor.activeIndex + 1) % editor.files.length;
+                        if (editor.files.length > 1) {
+                            editor.setSplit(nextIndex);
+                            tools.toggle('splitView');
+                        }
+                    }
+                },
+                description: 'Toggle split view'
             })
         ];
         const cmdUnsubs = [
@@ -313,27 +331,62 @@
                         </div>
                     </ZenMode>
                 {:else}
-                    <div class="content" onclick={(e) => {
-                        const lineEl = (e.target as HTMLElement).closest('[data-linenum]');
-                        if (lineEl) {
-                            const num = parseInt((lineEl as HTMLElement).dataset.linenum || '1');
-                            editor.setCursor(num, 1);
-                        }
-                    }}>
-                        {#each filteredLines as line, i (line.number > 0 ? line.number : `collapsed-${i}`)}
-                            <Line
-                                {line}
-                                {showLineNumbers}
-                                isCurrent={line.number === editor.cursorLine}
-                                spotlight={tools.isActive('spotlight')}
-                                spotlightAbove={tools.spotlightAbove}
-                                spotlightBelow={tools.spotlightBelow}
-                                cursorLine={editor.cursorLine}
-                                selectLine={tools.isActive('selectLine') ? tools.selectLineVariant : 'off'}
-                                marked={editor.activeFile ? editor.getMarks(editor.activeFile.path).includes(line.number) : false}
-                            />
-                        {/each}
-                    </div>
+                    {#if tools.isActive('splitView') && editor.splitFile}
+                        <SplitView>
+                            {#snippet leftContent()}
+                                <div class="content" onclick={(e) => {
+                                    const lineEl = (e.target as HTMLElement).closest('[data-linenum]');
+                                    if (lineEl) {
+                                        const num = parseInt((lineEl as HTMLElement).dataset.linenum || '1');
+                                        editor.setCursor(num, 1);
+                                    }
+                                }}>
+                                    {#each filteredLines as line, i (line.number > 0 ? line.number : `collapsed-${i}`)}
+                                        <Line
+                                            {line}
+                                            {showLineNumbers}
+                                            isCurrent={line.number === editor.cursorLine}
+                                            spotlight={tools.isActive('spotlight')}
+                                            spotlightAbove={tools.spotlightAbove}
+                                            spotlightBelow={tools.spotlightBelow}
+                                            cursorLine={editor.cursorLine}
+                                            selectLine={tools.isActive('selectLine') ? tools.selectLineVariant : 'off'}
+                                            marked={editor.activeFile ? editor.getMarks(editor.activeFile.path).includes(line.number) : false}
+                                        />
+                                    {/each}
+                                </div>
+                            {/snippet}
+                            {#snippet rightContent()}
+                                <div class="content">
+                                    {#each parseLines(editor.splitFile.content) as line (line.number)}
+                                        <Line {line} {showLineNumbers} />
+                                    {/each}
+                                </div>
+                            {/snippet}
+                        </SplitView>
+                    {:else}
+                        <div class="content" onclick={(e) => {
+                            const lineEl = (e.target as HTMLElement).closest('[data-linenum]');
+                            if (lineEl) {
+                                const num = parseInt((lineEl as HTMLElement).dataset.linenum || '1');
+                                editor.setCursor(num, 1);
+                            }
+                        }}>
+                            {#each filteredLines as line, i (line.number > 0 ? line.number : `collapsed-${i}`)}
+                                <Line
+                                    {line}
+                                    {showLineNumbers}
+                                    isCurrent={line.number === editor.cursorLine}
+                                    spotlight={tools.isActive('spotlight')}
+                                    spotlightAbove={tools.spotlightAbove}
+                                    spotlightBelow={tools.spotlightBelow}
+                                    cursorLine={editor.cursorLine}
+                                    selectLine={tools.isActive('selectLine') ? tools.selectLineVariant : 'off'}
+                                    marked={editor.activeFile ? editor.getMarks(editor.activeFile.path).includes(line.number) : false}
+                                />
+                            {/each}
+                        </div>
+                    {/if}
                 {/if}
             {/if}
         {:else}
