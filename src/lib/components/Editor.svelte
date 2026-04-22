@@ -2,6 +2,7 @@
     import TabBar from './TabBar.svelte';
     import StatusBar from './StatusBar.svelte';
     import CommandPalette from './CommandPalette.svelte';
+    import FilterSidebar from './FilterSidebar.svelte';
     import Line from './Line.svelte';
     import EditableArea from './EditableArea.svelte';
     import { editor } from '$lib/stores/editor.svelte';
@@ -26,6 +27,66 @@
     );
 
     let showLineNumbers = $derived(tools.isActive('lineNumbers'));
+
+    let filteredLines = $derived.by(() => {
+        if (!editor.activeFile || !tools.isActive('filter')) return lines;
+
+        const checked = editor.getChecked(editor.activeFile.path);
+        // If nothing is unchecked, return all lines
+        const hasUnchecked = Object.values(checked).some(v => v === false);
+        if (!hasUnchecked) return lines;
+
+        const result: ParsedLine[] = [];
+        let hiding = false;
+        let hiddenCount = 0;
+        let hiddenHeader = '';
+        let currentLevel: 'h2' | 'h3' | null = null;
+
+        for (const line of lines) {
+            if (line.type === 'h2' || line.type === 'h3') {
+                // Flush any hidden section
+                if (hiding && hiddenCount > 0) {
+                    result.push({
+                        type: 'meta' as const,
+                        content: `${hiddenHeader} (${hiddenCount} lines hidden)`,
+                        raw: '',
+                        number: -1
+                    });
+                }
+
+                if (checked[line.number] === false) {
+                    hiding = true;
+                    hiddenCount = 0;
+                    hiddenHeader = line.content;
+                    currentLevel = line.type;
+                } else {
+                    // Check if this is a sub-header of a hidden section
+                    if (hiding && line.type === 'h3' && currentLevel === 'h2') {
+                        hiddenCount++;
+                    } else {
+                        hiding = false;
+                        result.push(line);
+                    }
+                }
+            } else if (hiding) {
+                hiddenCount++;
+            } else {
+                result.push(line);
+            }
+        }
+
+        // Flush final hidden section
+        if (hiding && hiddenCount > 0) {
+            result.push({
+                type: 'meta' as const,
+                content: `${hiddenHeader} (${hiddenCount} lines hidden)`,
+                raw: '',
+                number: -1
+            });
+        }
+
+        return result;
+    });
 
     async function openFile(path: string, name: string) {
         const existing = editor.files.find((f) => f.path === path);
@@ -115,6 +176,13 @@
                 ctrl: true,
                 handler: () => tools.toggle('commandPalette'),
                 description: 'Toggle command palette'
+            }),
+            register({
+                key: 'f',
+                ctrl: true,
+                shift: true,
+                handler: () => tools.toggle('filter'),
+                description: 'Toggle filter sidebar'
             })
         ];
         const cmdUnsubs = [
@@ -154,7 +222,7 @@
                         editor.setCursor(num, 1);
                     }
                 }}>
-                    {#each lines as line (line.number)}
+                    {#each filteredLines as line, i (line.number > 0 ? line.number : `collapsed-${i}`)}
                         <Line
                             {line}
                             {showLineNumbers}
@@ -185,6 +253,14 @@
         {/if}
     </div>
     <StatusBar />
+    {#if tools.isActive('filter') && editor.activeFile}
+        <FilterSidebar
+            {lines}
+            checkedSections={editor.getChecked(editor.activeFile.path)}
+            ontoggle={(lineNumber) => editor.toggleSection(editor.activeFile!.path, lineNumber)}
+            onclose={() => tools.dismiss('filter')}
+        />
+    {/if}
     {#if tools.isActive('commandPalette')}
         <CommandPalette onclose={() => tools.dismiss('commandPalette')} />
     {/if}
