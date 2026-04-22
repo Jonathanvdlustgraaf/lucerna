@@ -5,6 +5,7 @@
 	let { toolStatus = '' }: { toolStatus?: string } = $props();
 
 	let filePath = $derived(editor.activeFile?.path ?? 'No file open');
+	let modeLabel = $derived(editor.editMode ? 'EDIT' : 'VIEW');
 	let position = $derived(`Ln ${editor.cursorLine}, Col ${editor.cursorCol}`);
 	let syncIndicator = $derived(
 		git.syncing
@@ -19,11 +20,16 @@
 
 <div class="status-bar">
 	<span class="left">{filePath}</span>
+	<span class="sep">·</span>
+	<span class="mode">{modeLabel}</span>
 	{#if toolStatus}
+		<span class="sep">·</span>
 		<span class="center">{toolStatus}</span>
 	{/if}
+	<span class="sep">·</span>
 	<span class="right">
 		<span>{position}</span>
+		<span class="sep">·</span>
 		<span class="sync">{syncIndicator}</span>
 	</span>
 </div>
@@ -56,6 +62,17 @@
 		display: flex;
 		gap: var(--space-md);
 		flex-shrink: 0;
+	}
+	.mode {
+		color: var(--accent);
+		text-transform: uppercase;
+		letter-spacing: 0.5px;
+		flex-shrink: 0;
+	}
+	.sep {
+		flex-shrink: 0;
+		padding: 0 var(--space-sm, 4px);
+		opacity: 0.4;
 	}
 	.sync { color: var(--accent); }
 </style>
