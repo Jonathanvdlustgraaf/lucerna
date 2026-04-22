@@ -4,6 +4,7 @@
     import CommandPalette from './CommandPalette.svelte';
     import FilterSidebar from './FilterSidebar.svelte';
     import GitPanel from './GitPanel.svelte';
+    import ExportPreview from './ExportPreview.svelte';
     import Line from './Line.svelte';
     import SplitView from './SplitView.svelte';
     import EditableArea from './EditableArea.svelte';
@@ -283,7 +284,44 @@
             registerCommand({ id: 'toggle-filter', label: 'Toggle Filter', description: 'Section filter sidebar', shortcut: 'Ctrl+Shift+F', handler: () => tools.toggle('filter') }),
             registerCommand({ id: 'toggle-git', label: 'Toggle Git Panel', description: 'Commit, push, pull', shortcut: 'Ctrl+Shift+G', handler: () => tools.toggle('gitPanel') }),
             registerCommand({ id: 'toggle-edit', label: 'Toggle Edit Mode', description: 'Switch view/edit', shortcut: 'Ctrl+E', handler: () => editor.toggleEdit() }),
-            registerCommand({ id: 'save', label: 'Save File', description: 'Save current file', shortcut: 'Ctrl+S', handler: () => saveFile() })
+            registerCommand({ id: 'save', label: 'Save File', description: 'Save current file', shortcut: 'Ctrl+S', handler: () => saveFile() }),
+            registerCommand({ id: 'export-preview', label: 'Export Preview', description: 'Show export preview', handler: () => tools.toggle('exportPreview') }),
+            registerCommand({ id: 'export-pdf', label: 'Export PDF', description: 'Export current file as PDF', handler: async () => {
+                const file = editor.activeFile;
+                if (!file) return;
+                const res = await fetch('/api/export/pdf', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ path: file.path, template: 'professional' })
+                });
+                if (res.ok) {
+                    const blob = await res.blob();
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = file.path.replace('.md', '.pdf');
+                    a.click();
+                    URL.revokeObjectURL(url);
+                }
+            } }),
+            registerCommand({ id: 'export-word', label: 'Export Word', description: 'Export current file as Word', handler: async () => {
+                const file = editor.activeFile;
+                if (!file) return;
+                const res = await fetch('/api/export/docx', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ path: file.path, template: 'professional' })
+                });
+                if (res.ok) {
+                    const blob = await res.blob();
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = file.path.replace('.md', '.docx');
+                    a.click();
+                    URL.revokeObjectURL(url);
+                }
+            } })
         ];
         return () => {
             cleanupAutosave();
@@ -436,6 +474,13 @@
                 await git.refresh();
             }}
             onclose={() => tools.dismiss('gitPanel')}
+        />
+    {/if}
+    {#if tools.isActive('exportPreview') && editor.activeFile}
+        <ExportPreview
+            lines={lines}
+            filePath={editor.activeFile.path}
+            onclose={() => tools.dismiss('exportPreview')}
         />
     {/if}
     {#if tools.isActive('commandPalette')}
