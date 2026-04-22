@@ -65,6 +65,20 @@ class EditorState {
 			file.dirty = true;
 		}
 	}
+
+	checkedSections = $state<Record<string, Record<number, boolean>>>({});
+
+	getChecked(path: string): Record<number, boolean> {
+		return this.checkedSections[path] || {};
+	}
+
+	toggleSection(path: string, lineNumber: number) {
+		if (!this.checkedSections[path]) {
+			this.checkedSections[path] = {};
+		}
+		const current = this.checkedSections[path][lineNumber];
+		this.checkedSections[path][lineNumber] = current === undefined ? false : !current;
+	}
 }
 
 export const editor = new EditorState();
