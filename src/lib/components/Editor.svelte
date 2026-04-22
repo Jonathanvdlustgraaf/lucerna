@@ -1,0 +1,141 @@
+<script lang="ts">
+	import TabBar from './TabBar.svelte';
+	import StatusBar from './StatusBar.svelte';
+	import Line from './Line.svelte';
+	import { editor } from '$lib/stores/editor.svelte';
+	import { tools } from '$lib/stores/tools.svelte';
+	import { register, handleKeydown } from '$lib/services/keyboard';
+	import { parseLines } from '$lib/services/markdown';
+	import type { ParsedLine } from '$lib/services/markdown';
+	import { onMount } from 'svelte';
+
+	interface FileTreeEntry {
+		path: string;
+		name: string;
+		type: 'file' | 'directory';
+	}
+
+	let { fileTree = [] }: { fileTree: FileTreeEntry[] } = $props();
+
+	let lines = $derived<ParsedLine[]>(
+		editor.activeFile ? parseLines(editor.activeFile.content) : []
+	);
+
+	let showLineNumbers = $derived(tools.isActive('lineNumbers'));
+
+	async function openFile(path: string, name: string) {
+		const existing = editor.files.find((f) => f.path === path);
+		if (existing) {
+			editor.open(path, name, existing.content);
+			return;
+		}
+		const res = await fetch(`/api/files/${encodeURIComponent(path)}`);
+		if (res.ok) {
+			const data = await res.json();
+			editor.open(path, name, data.content);
+		}
+	}
+
+	let markdownFiles = $derived(fileTree.filter((f) => f.type === 'file'));
+
+	onMount(() => {
+		const unsubs = [
+			register({
+				key: 'g',
+				ctrl: true,
+				handler: () => tools.toggle('lineNumbers'),
+				description: 'Toggle line numbers'
+			})
+		];
+		return () => unsubs.forEach((fn) => fn());
+	});
+</script>
+
+<svelte:window onkeydown={handleKeydown} />
+
+<div class="editor">
+	<TabBar />
+	<div class="body">
+		{#if editor.activeFile}
+			<div class="content">
+				{#each lines as line (line.number)}
+					<Line {line} {showLineNumbers} />
+				{/each}
+			</div>
+		{:else}
+			<div class="empty">
+				<p class="title">Lucerna</p>
+				<p class="subtitle">Open a file to start editing</p>
+				{#if markdownFiles.length > 0}
+					<div class="file-list">
+						{#each markdownFiles as file}
+							<button class="file-item" onclick={() => openFile(file.path, file.name)}>
+								{file.path}
+							</button>
+						{/each}
+					</div>
+				{/if}
+			</div>
+		{/if}
+	</div>
+	<StatusBar />
+</div>
+
+<style>
+	.editor {
+		display: flex;
+		flex-direction: column;
+		height: 100vh;
+		background: var(--canvas);
+	}
+	.body {
+		flex: 1;
+		overflow-y: auto;
+		padding: var(--space-md) var(--space-lg);
+	}
+	.content { max-width: 80ch; }
+	.empty {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		height: 100%;
+		gap: var(--space-sm);
+	}
+	.title {
+		font-family: var(--font-heading);
+		font-size: 24px;
+		font-weight: 700;
+		color: var(--accent);
+	}
+	.subtitle {
+		font-family: var(--font-body);
+		font-size: 16px;
+		color: var(--muted);
+		margin-bottom: var(--space-lg);
+	}
+	.file-list {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-xs);
+		max-width: 400px;
+		width: 100%;
+	}
+	.file-item {
+		background: none;
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		color: var(--text);
+		font-family: var(--font-mono);
+		font-size: 13px;
+		padding: var(--space-sm) var(--space-md);
+		cursor: pointer;
+		text-align: left;
+		transition: all 150ms ease-out;
+	}
+	.file-item:hover {
+		background: var(--surface);
+		border-color: var(--accent);
+		color: var(--accent);
+	}
+</style>
