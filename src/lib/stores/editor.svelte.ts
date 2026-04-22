@@ -107,6 +107,16 @@ class EditorState {
 		const current = this.cursorLine;
 		return m.find((n) => n < current) ?? m[0] ?? null;
 	}
+
+	splitIndex = $state<number | null>(null);
+
+	get splitFile(): OpenFile | undefined {
+		return this.splitIndex !== null ? this.files[this.splitIndex] : undefined;
+	}
+
+	setSplit(index: number | null) {
+		this.splitIndex = index;
+	}
 }
 
 export const editor = new EditorState();
