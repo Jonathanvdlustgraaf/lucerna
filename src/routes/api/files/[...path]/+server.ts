@@ -2,6 +2,7 @@ import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { getRepoPath } from '$lib/server/config';
 import { getFile, putFile } from '$lib/server/files';
+import { createGitService } from '$lib/server/git';
 
 export const GET: RequestHandler = async ({ params }) => {
 	try {
@@ -17,8 +18,15 @@ export const GET: RequestHandler = async ({ params }) => {
 
 export const PUT: RequestHandler = async ({ params, request }) => {
 	try {
-		const { content } = await request.json();
+		const { content, autoCommit, message } = await request.json();
 		await putFile(getRepoPath(), params.path, content);
+
+		if (autoCommit) {
+			const git = createGitService(getRepoPath());
+			const commitMsg = message || `update ${params.path}`;
+			await git.commit(commitMsg, [params.path]);
+		}
+
 		return json({ success: true });
 	} catch (err) {
 		if (err instanceof Error && err.message === 'Path traversal detected') {
