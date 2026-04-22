@@ -125,6 +125,13 @@
         triggerAutosave();
     }
 
+    function scrollCursorIntoView() {
+        requestAnimationFrame(() => {
+            const el = document.querySelector(`[data-linenum="${editor.cursorLine}"]`);
+            if (el) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        });
+    }
+
     let markdownFiles = $derived(fileTree.filter((f) => f.type === 'file'));
 
     let gitLog = $state<Array<{ sha: string; message: string; author: string; date: string }>>([]);
@@ -174,6 +181,29 @@
                 ctrl: true,
                 handler: () => tools.toggle('selectLine'),
                 description: 'Toggle select-line cursor'
+            }),
+            register({
+                key: 'ArrowUp',
+                handler: () => {
+                    if (!editor.editMode && editor.activeFile) {
+                        const newLine = Math.max(1, editor.cursorLine - 1);
+                        editor.setCursor(newLine, editor.cursorCol);
+                        scrollCursorIntoView();
+                    }
+                },
+                description: 'Move cursor up'
+            }),
+            register({
+                key: 'ArrowDown',
+                handler: () => {
+                    if (!editor.editMode && editor.activeFile) {
+                        const maxLine = lines.length;
+                        const newLine = Math.min(maxLine, editor.cursorLine + 1);
+                        editor.setCursor(newLine, editor.cursorCol);
+                        scrollCursorIntoView();
+                    }
+                },
+                description: 'Move cursor down'
             }),
             register({
                 key: 'ArrowUp',
