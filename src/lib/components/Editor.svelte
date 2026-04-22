@@ -1,11 +1,13 @@
 <script lang="ts">
     import TabBar from './TabBar.svelte';
     import StatusBar from './StatusBar.svelte';
+    import CommandPalette from './CommandPalette.svelte';
     import Line from './Line.svelte';
     import EditableArea from './EditableArea.svelte';
     import { editor } from '$lib/stores/editor.svelte';
     import { tools } from '$lib/stores/tools.svelte';
     import { register, handleKeydown } from '$lib/services/keyboard';
+    import { registerCommand } from '$lib/services/commands';
     import { setupAutosave, triggerAutosave } from '$lib/services/autosave';
     import { parseLines } from '$lib/services/markdown';
     import type { ParsedLine } from '$lib/services/markdown';
@@ -107,6 +109,12 @@
                     if (tools.isActive('spotlight')) tools.adjustSpotlight('down');
                 },
                 description: 'Expand spotlight down'
+            }),
+            register({
+                key: 'k',
+                ctrl: true,
+                handler: () => tools.toggle('commandPalette'),
+                description: 'Toggle command palette'
             })
         ];
         return () => {
@@ -166,6 +174,9 @@
         {/if}
     </div>
     <StatusBar />
+    {#if tools.isActive('commandPalette')}
+        <CommandPalette onclose={() => tools.dismiss('commandPalette')} />
+    {/if}
 </div>
 
 <style>
