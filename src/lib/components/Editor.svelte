@@ -6,6 +6,7 @@
     import { editor } from '$lib/stores/editor.svelte';
     import { tools } from '$lib/stores/tools.svelte';
     import { register, handleKeydown } from '$lib/services/keyboard';
+    import { setupAutosave, triggerAutosave } from '$lib/services/autosave';
     import { parseLines } from '$lib/services/markdown';
     import type { ParsedLine } from '$lib/services/markdown';
     import { onMount } from 'svelte';
@@ -52,11 +53,13 @@
 
     function handleContentChange(value: string) {
         editor.updateContent(value);
+        triggerAutosave();
     }
 
     let markdownFiles = $derived(fileTree.filter((f) => f.type === 'file'));
 
     onMount(() => {
+        const cleanupAutosave = setupAutosave(saveFile);
         const unsubs = [
             register({
                 key: 'g',
@@ -77,7 +80,10 @@
                 description: 'Save file'
             })
         ];
-        return () => unsubs.forEach((fn) => fn());
+        return () => {
+            cleanupAutosave();
+            unsubs.forEach((fn) => fn());
+        };
     });
 </script>
 
