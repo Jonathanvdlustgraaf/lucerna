@@ -9,7 +9,9 @@
 		spotlightAbove = 3,
 		spotlightBelow = 2,
 		cursorLine = 1,
-		selectLine = 'off' as 'off' | 'bright' | 'underline' | 'weight' | 'glow'
+		selectLine = 'off' as 'off' | 'bright' | 'underline' | 'weight' | 'glow',
+		folded = false,
+		onfold
 	}: {
 		line: ParsedLine;
 		showLineNumbers?: boolean;
@@ -19,6 +21,8 @@
 		spotlightBelow?: number;
 		cursorLine?: number;
 		selectLine?: 'off' | 'bright' | 'underline' | 'weight' | 'glow';
+		folded?: boolean;
+		onfold?: () => void;
 	} = $props();
 
 	let lineStyle = $derived.by(() => {
@@ -73,7 +77,14 @@
 
 <div class="line" data-type={line.type} data-linenum={line.number} style={lineStyle}>
 	{#if showLineNumbers}
-		<span class="gutter">{line.number}</span>
+		<span class="gutter">
+			{#if (line.type === 'h2' || line.type === 'h3') && onfold}
+				<button class="fold-icon" class:folded onclick={(e) => { e.stopPropagation(); onfold?.(); }}>
+					{folded ? '\u25B6' : '\u25BC'}
+				</button>
+			{/if}
+			{line.number}
+		</span>
 	{/if}
 	<span class="content">
 		{#if line.type === 'blank'}
@@ -92,6 +103,7 @@
 		transition: opacity 150ms ease-out;
 	}
 	.gutter {
+		position: relative;
 		width: 48px;
 		text-align: right;
 		padding-right: var(--space-sm);
@@ -100,6 +112,27 @@
 		color: var(--muted);
 		user-select: none;
 		flex-shrink: 0;
+	}
+	.fold-icon {
+		position: absolute;
+		left: 0;
+		top: 50%;
+		transform: translateY(-50%);
+		background: none;
+		border: none;
+		color: var(--muted);
+		font-size: 8px;
+		cursor: pointer;
+		padding: 2px;
+		opacity: 0;
+		transition: opacity 150ms ease-out;
+	}
+	.line:hover .fold-icon {
+		opacity: 0.6;
+	}
+	.fold-icon:hover {
+		opacity: 1;
+		color: var(--accent);
 	}
 	.content { flex: 1; }
 	.line[data-type='h1'] .content {
