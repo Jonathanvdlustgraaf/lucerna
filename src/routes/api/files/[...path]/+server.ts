@@ -1,12 +1,17 @@
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { getRepoPath } from '$lib/server/config';
-import { getFile, putFile } from '$lib/server/files';
+import { getFile, putFile, getFileAbsolute, putFileAbsolute } from '$lib/server/files';
 import { createGitService } from '$lib/server/git';
 
 export const GET: RequestHandler = async ({ params }) => {
 	try {
-		const content = await getFile(getRepoPath(), params.path);
+		const filePath = params.path;
+		if (filePath.startsWith('/')) {
+			const content = await getFileAbsolute(filePath);
+			return json({ content });
+		}
+		const content = await getFile(getRepoPath(), filePath);
 		return json({ content });
 	} catch (err) {
 		if (err instanceof Error && err.message === 'Path traversal detected') {
@@ -19,12 +24,19 @@ export const GET: RequestHandler = async ({ params }) => {
 export const PUT: RequestHandler = async ({ params, request }) => {
 	try {
 		const { content, autoCommit, message } = await request.json();
-		await putFile(getRepoPath(), params.path, content);
+		const filePath = params.path;
+
+		if (filePath.startsWith('/')) {
+			await putFileAbsolute(filePath, content);
+			return json({ success: true });
+		}
+
+		await putFile(getRepoPath(), filePath, content);
 
 		if (autoCommit) {
 			const git = createGitService(getRepoPath());
-			const commitMsg = message || `update ${params.path}`;
-			await git.commit(commitMsg, [params.path]);
+			const commitMsg = message || `update ${filePath}`;
+			await git.commit(commitMsg, [filePath]);
 		}
 
 		return json({ success: true });
