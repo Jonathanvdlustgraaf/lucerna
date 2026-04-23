@@ -20,14 +20,6 @@
     import type { ParsedLine } from '$lib/services/markdown';
     import { onMount } from 'svelte';
 
-    interface FileTreeEntry {
-        path: string;
-        name: string;
-        type: 'file' | 'directory';
-    }
-
-    let { fileTree = [] }: { fileTree: FileTreeEntry[] } = $props();
-
     let lines = $derived<ParsedLine[]>(
         editor.activeFile ? parseLines(editor.activeFile.content) : []
     );
@@ -132,8 +124,6 @@
             if (el) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
         });
     }
-
-    let markdownFiles = $derived(fileTree.filter((f) => f.type === 'file'));
 
     let gitLog = $state<Array<{ sha: string; message: string; author: string; date: string }>>([]);
 
@@ -377,7 +367,6 @@
     <div class="main-area">
     {#if tools.isActive('fileTree') && !tools.isActive('zenMode')}
         <FileTree
-            {fileTree}
             activePath={editor.activeFile?.path ?? ''}
             onselect={(path, name) => openFile(path, name)}
             onclose={() => tools.dismiss('fileTree')}
@@ -477,16 +466,7 @@
         {:else}
             <div class="empty">
                 <p class="title">Lucerna</p>
-                <p class="subtitle">Open a file to start editing</p>
-                {#if markdownFiles.length > 0}
-                    <div class="file-list">
-                        {#each markdownFiles as file}
-                            <button class="file-item" onclick={() => openFile(file.path, file.name)}>
-                                {file.path}
-                            </button>
-                        {/each}
-                    </div>
-                {/if}
+                <p class="subtitle">Open a file from the sidebar</p>
             </div>
         {/if}
     </div>
@@ -575,28 +555,5 @@
         color: var(--muted);
         margin-bottom: var(--space-lg);
     }
-    .file-list {
-        display: flex;
-        flex-direction: column;
-        gap: var(--space-xs);
-        max-width: 400px;
-        width: 100%;
-    }
-    .file-item {
-        background: none;
-        border: 1px solid var(--border);
-        border-radius: var(--radius);
-        color: var(--text);
-        font-family: var(--font-mono);
-        font-size: 13px;
-        padding: var(--space-sm) var(--space-md);
-        cursor: pointer;
-        text-align: left;
-        transition: all 150ms ease-out;
-    }
-    .file-item:hover {
-        background: var(--surface);
-        border-color: var(--accent);
-        color: var(--accent);
-    }
+
 </style>
