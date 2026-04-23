@@ -5,6 +5,7 @@
     import FilterSidebar from './FilterSidebar.svelte';
     import GitPanel from './GitPanel.svelte';
     import ExportPreview from './ExportPreview.svelte';
+    import FileTree from './FileTree.svelte';
     import Line from './Line.svelte';
     import SplitView from './SplitView.svelte';
     import EditableArea from './EditableArea.svelte';
@@ -151,6 +152,12 @@
             if (tools.isActive('gitPanel')) git.refresh();
         }, 30000);
         const unsubs = [
+            register({
+                key: 'b',
+                ctrl: true,
+                handler: () => tools.toggle('fileTree'),
+                description: 'Toggle file tree'
+            }),
             register({
                 key: 'g',
                 ctrl: true,
@@ -307,6 +314,7 @@
             })
         ];
         const cmdUnsubs = [
+            registerCommand({ id: 'toggle-file-tree', label: 'Toggle File Tree', description: 'Show/hide file sidebar', shortcut: 'Ctrl+B', handler: () => tools.toggle('fileTree') }),
             registerCommand({ id: 'toggle-spotlight', label: 'Toggle Spotlight', description: 'Focus window around cursor', shortcut: 'Ctrl+Shift+S', handler: () => tools.toggle('spotlight') }),
             registerCommand({ id: 'toggle-select-line', label: 'Toggle Select-Line', description: 'Highlight current line', shortcut: 'Ctrl+L', handler: () => tools.toggle('selectLine') }),
             registerCommand({ id: 'toggle-line-numbers', label: 'Toggle Line Numbers', description: 'Show/hide gutter', shortcut: 'Ctrl+G', handler: () => tools.toggle('lineNumbers') }),
@@ -366,6 +374,15 @@
 
 <div class="editor">
     <TabBar />
+    <div class="main-area">
+    {#if tools.isActive('fileTree') && !tools.isActive('zenMode')}
+        <FileTree
+            {fileTree}
+            activePath={editor.activeFile?.path ?? ''}
+            onselect={(path, name) => openFile(path, name)}
+            onclose={() => tools.dismiss('fileTree')}
+        />
+    {/if}
     <div class="body">
         {#if editor.activeFile}
             {#if editor.editMode}
@@ -473,6 +490,7 @@
             </div>
         {/if}
     </div>
+    </div>
     <StatusBar />
     {#if tools.isActive('filter') && editor.activeFile}
         <FilterSidebar
@@ -524,6 +542,11 @@
         flex-direction: column;
         height: 100vh;
         background: var(--canvas);
+    }
+    .main-area {
+        flex: 1;
+        display: flex;
+        overflow: hidden;
     }
     .body {
         flex: 1;
