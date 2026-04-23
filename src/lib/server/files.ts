@@ -37,6 +37,31 @@ export async function listFiles(repoPath: string, subPath = ''): Promise<FileEnt
 	return results;
 }
 
+export async function browseDirectory(absolutePath: string): Promise<FileEntry[]> {
+	const resolved = resolve(absolutePath);
+	const entries = await readdir(resolved, { withFileTypes: true });
+	const results: FileEntry[] = [];
+
+	for (const entry of entries) {
+		if (entry.name.startsWith('.')) continue;
+
+		const entryPath = join(resolved, entry.name);
+
+		if (entry.isDirectory()) {
+			results.push({ path: entryPath, name: entry.name, type: 'directory' });
+		} else if (extname(entry.name) === '.md') {
+			results.push({ path: entryPath, name: entry.name, type: 'file' });
+		}
+	}
+
+	results.sort((a, b) => {
+		if (a.type !== b.type) return a.type === 'directory' ? -1 : 1;
+		return a.name.localeCompare(b.name);
+	});
+
+	return results;
+}
+
 export async function getFile(repoPath: string, filePath: string): Promise<string> {
 	const resolved = assertSafePath(repoPath, filePath);
 	return readFile(resolved, 'utf-8');
@@ -45,4 +70,12 @@ export async function getFile(repoPath: string, filePath: string): Promise<strin
 export async function putFile(repoPath: string, filePath: string, content: string): Promise<void> {
 	const resolved = assertSafePath(repoPath, filePath);
 	await writeFile(resolved, content, 'utf-8');
+}
+
+export async function getFileAbsolute(absolutePath: string): Promise<string> {
+	return readFile(resolve(absolutePath), 'utf-8');
+}
+
+export async function putFileAbsolute(absolutePath: string, content: string): Promise<void> {
+	await writeFile(resolve(absolutePath), content, 'utf-8');
 }
