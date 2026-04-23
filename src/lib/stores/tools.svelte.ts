@@ -7,7 +7,8 @@ export type ToolName =
 	| 'zenMode'
 	| 'splitView'
 	| 'gitPanel'
-	| 'exportPreview';
+	| 'exportPreview'
+	| 'fileTree';
 
 class ToolsState {
 	active = $state<Record<ToolName, boolean>>({
@@ -19,7 +20,8 @@ class ToolsState {
 		zenMode: false,
 		splitView: false,
 		gitPanel: false,
-		exportPreview: false
+		exportPreview: false,
+		fileTree: true
 	});
 
 	isActive(tool: ToolName): boolean {
