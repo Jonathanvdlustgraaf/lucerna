@@ -6,7 +6,8 @@ export type ToolName =
 	| 'lineNumbers'
 	| 'zenMode'
 	| 'splitView'
-	| 'gitPanel';
+	| 'gitPanel'
+	| 'exportPreview';
 
 class ToolsState {
 	active = $state<Record<ToolName, boolean>>({
@@ -17,7 +18,8 @@ class ToolsState {
 		lineNumbers: false,
 		zenMode: false,
 		splitView: false,
-		gitPanel: false
+		gitPanel: false,
+		exportPreview: false
 	});
 
 	isActive(tool: ToolName): boolean {
@@ -35,6 +37,26 @@ class ToolsState {
 	dismissAll() {
 		for (const key of Object.keys(this.active) as ToolName[]) {
 			this.active[key] = false;
+		}
+	}
+
+	spotlightAbove = $state(3);
+	spotlightBelow = $state(2);
+	selectLineVariant = $state<'bright' | 'underline' | 'weight' | 'glow'>('bright');
+
+	adjustSpotlight(direction: 'up' | 'down') {
+		if (direction === 'up') {
+			this.spotlightAbove = Math.min(this.spotlightAbove + 1, 20);
+		} else {
+			this.spotlightBelow = Math.min(this.spotlightBelow + 1, 20);
+		}
+	}
+
+	shrinkSpotlight(direction: 'up' | 'down') {
+		if (direction === 'up') {
+			this.spotlightAbove = Math.max(this.spotlightAbove - 1, 0);
+		} else {
+			this.spotlightBelow = Math.max(this.spotlightBelow - 1, 0);
 		}
 	}
 }

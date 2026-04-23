@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{title}}</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=Inter:wght@400;500&display=swap');
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            color: #1c1917;
+            background: white;
+            line-height: 1.75;
+            font-size: 14px;
+        }
+
+        /* ── Voorpagina ── */
+        .voorpagina {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            text-align: center;
+            padding: 20%;
+            page-break-after: always;
+        }
+        .voorpagina h1 {
+            font-family: 'Sora', sans-serif;
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+        .voorpagina hr {
+            width: 60px;
+            border: none;
+            border-top: 2px solid #d4a843;
+            margin: 24px 0;
+        }
+        .voorpagina .author { font-size: 16px; color: #57534e; margin-bottom: 4px; }
+        .voorpagina .date   { font-size: 14px; color: #78716c; }
+
+        /* ── Inhoudsopgave ── */
+        .toc {
+            padding: 40px;
+            page-break-after: always;
+        }
+        .toc h2 {
+            font-family: 'Sora', sans-serif;
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+        .toc-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+            border-bottom: 1px dotted #e7e5e4;
+        }
+
+        /* ── Body ── */
+        .body-content { padding: 40px; }
+        .body-content h1 {
+            font-family: 'Sora', sans-serif;
+            font-size: 28px;
+            font-weight: 700;
+            margin: 24px 0 12px;
+        }
+        .body-content h2 {
+            font-family: 'Sora', sans-serif;
+            font-size: 22px;
+            font-weight: 600;
+            margin: 20px 0 10px;
+            page-break-before: always;
+            padding-top: 16px;
+        }
+        .body-content h3 {
+            font-family: 'Sora', sans-serif;
+            font-size: 18px;
+            font-weight: 600;
+            margin: 16px 0 8px;
+        }
+        .body-content p  { margin-bottom: 12px; }
+        .body-content li { margin-left: 24px; margin-bottom: 4px; }
+        .body-content blockquote {
+            border-left: 4px solid #e7e5e4;
+            padding-left: 16px;
+            color: #78716c;
+            margin: 12px 0;
+        }
+        .body-content code {
+            font-family: 'Courier New', Courier, monospace;
+            background: #f5f5f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+        .body-content pre {
+            background: #f5f5f4;
+            padding: 16px;
+            border-radius: 4px;
+            overflow-x: auto;
+            margin-bottom: 12px;
+        }
+        .body-content pre code {
+            background: none;
+            padding: 0;
+        }
+        .page-break { page-break-before: always; }
+
+        /* ── Print ── */
+        @media print {
+            body { font-size: 12px; }
+            .voorpagina { min-height: auto; padding: 30% 20%; }
+            @page {
+                margin: 2cm 2.5cm;
+            }
+            @page :left  { margin-left: 3cm; }
+            @page :right { margin-right: 3cm; }
+        }
+    </style>
+</head>
+<body>
+    <div class="voorpagina">
+        <h1>{{title}}</h1>
+        <hr>
+        <p class="author">{{author}}</p>
+        <p class="date">{{date}}</p>
+    </div>
+
+    <div class="toc">
+        <h2>Inhoudsopgave</h2>
+        {{toc}}
+    </div>
+
+    <div class="body-content">
+        {{body}}
+    </div>
+</body>
+</html>

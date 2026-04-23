@@ -1,15 +1,39 @@
 <script lang="ts">
 	import { editor } from '$lib/stores/editor.svelte';
+	import { tools } from '$lib/stores/tools.svelte';
 
 	function closeTab(index: number, event: MouseEvent) {
 		event.stopPropagation();
 		editor.close(index);
 	}
+
+	let dragIndex = $state<number | null>(null);
+
+	function handleDragStart(index: number) {
+		dragIndex = index;
+	}
+
+	function handleDragEnd(e: DragEvent) {
+		if (dragIndex === null) return;
+		const midpoint = window.innerWidth / 2;
+		if (e.clientX > midpoint && editor.files.length > 1) {
+			editor.setSplit(dragIndex);
+			tools.toggle('splitView');
+		}
+		dragIndex = null;
+	}
 </script>
 
 <div class="tab-bar">
 	{#each editor.files as file, i}
-		<button class="tab" class:active={i === editor.activeIndex} onclick={() => editor.setActive(i)}>
+		<button
+			class="tab"
+			class:active={i === editor.activeIndex}
+			draggable="true"
+			ondragstart={() => handleDragStart(i)}
+			ondragend={handleDragEnd}
+			onclick={() => editor.setActive(i)}
+		>
 			<span class="tab-name">{file.name}</span>
 			{#if file.dirty}
 				<span class="dot">&#9679;</span>

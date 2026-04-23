@@ -60,6 +60,11 @@ export function createGitService(repoPath: string) {
 				author: entry.author_name,
 				date: entry.date
 			}));
+		},
+
+		async diff(sha: string): Promise<string> {
+			const result = await git.diff([`${sha}~1`, sha]);
+			return result;
 		}
 	};
 }

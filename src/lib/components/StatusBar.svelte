@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { editor } from '$lib/stores/editor.svelte';
 	import { git } from '$lib/stores/git.svelte';
-
-	let { toolStatus = '' }: { toolStatus?: string } = $props();
+	import { tools } from '$lib/stores/tools.svelte';
 
 	let filePath = $derived(editor.activeFile?.path ?? 'No file open');
+	let modeLabel = $derived(editor.editMode ? 'EDIT' : 'VIEW');
 	let position = $derived(`Ln ${editor.cursorLine}, Col ${editor.cursorCol}`);
 	let syncIndicator = $derived(
 		git.syncing
@@ -15,15 +15,37 @@
 					? `\u2193${git.behind}`
 					: '\u2713'
 	);
+
+	let splitPath = $derived(
+		tools.isActive('splitView') && editor.splitFile
+			? ` | ${editor.splitFile.path}`
+			: ''
+	);
+
+	let spotlightStatus = $derived(
+		tools.isActive('spotlight')
+			? `SPOTLIGHT ${tools.spotlightAbove}up ${tools.spotlightBelow}down`
+			: ''
+	);
+	let selectLineStatus = $derived(tools.isActive('selectLine') ? 'SELECT-LINE' : '');
 </script>
 
 <div class="status-bar">
-	<span class="left">{filePath}</span>
-	{#if toolStatus}
-		<span class="center">{toolStatus}</span>
+	<span class="left">{filePath}{splitPath}</span>
+	<span class="sep">·</span>
+	<span class="mode">{modeLabel}</span>
+	{#if spotlightStatus}
+		<span class="sep">·</span>
+		<span class="center">{spotlightStatus}</span>
 	{/if}
+	{#if selectLineStatus}
+		<span class="sep">·</span>
+		<span class="center">{selectLineStatus}</span>
+	{/if}
+	<span class="sep">·</span>
 	<span class="right">
 		<span>{position}</span>
+		<span class="sep">·</span>
 		<span class="sync">{syncIndicator}</span>
 	</span>
 </div>
@@ -56,6 +78,17 @@
 		display: flex;
 		gap: var(--space-md);
 		flex-shrink: 0;
+	}
+	.mode {
+		color: var(--accent);
+		text-transform: uppercase;
+		letter-spacing: 0.5px;
+		flex-shrink: 0;
+	}
+	.sep {
+		flex-shrink: 0;
+		padding: 0 var(--space-sm, 4px);
+		opacity: 0.4;
 	}
 	.sync { color: var(--accent); }
 </style>
