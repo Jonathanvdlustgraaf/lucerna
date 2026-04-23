@@ -3,7 +3,7 @@ interface Shortcut {
 	ctrl?: boolean;
 	shift?: boolean;
 	alt?: boolean;
-	handler: () => void;
+	handler: () => void | false;
 	description: string;
 }
 
@@ -27,8 +27,10 @@ export function handleKeydown(event: KeyboardEvent): void {
 			!!event.shiftKey === !!shortcut.shift &&
 			!!event.altKey === !!shortcut.alt
 		) {
-			event.preventDefault();
-			shortcut.handler();
+			const result = shortcut.handler();
+			if (result !== false) {
+				event.preventDefault();
+			}
 			return;
 		}
 	}

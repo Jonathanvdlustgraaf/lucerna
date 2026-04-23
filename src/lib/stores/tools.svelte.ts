@@ -8,7 +8,9 @@ export type ToolName =
 	| 'splitView'
 	| 'gitPanel'
 	| 'exportPreview'
-	| 'fileTree';
+	| 'fileTree'
+	| 'shortcutHelp'
+	| 'spotlightSettings';
 
 class ToolsState {
 	active = $state<Record<ToolName, boolean>>({
@@ -21,7 +23,9 @@ class ToolsState {
 		splitView: false,
 		gitPanel: false,
 		exportPreview: false,
-		fileTree: true
+		fileTree: true,
+		shortcutHelp: false,
+		spotlightSettings: false
 	});
 
 	isActive(tool: ToolName): boolean {
@@ -44,6 +48,7 @@ class ToolsState {
 
 	spotlightAbove = $state(3);
 	spotlightBelow = $state(2);
+	scrollMargin = $state(4);
 	selectLineVariant = $state<'bright' | 'underline' | 'weight' | 'glow'>('bright');
 
 	adjustSpotlight(direction: 'up' | 'down') {

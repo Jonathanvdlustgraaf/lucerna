@@ -6,6 +6,8 @@
     import GitPanel from './GitPanel.svelte';
     import ExportPreview from './ExportPreview.svelte';
     import FileTree from './FileTree.svelte';
+    import ShortcutHelp from './ShortcutHelp.svelte';
+    import SpotlightSettings from './SpotlightSettings.svelte';
     import Line from './Line.svelte';
     import SplitView from './SplitView.svelte';
     import EditableArea from './EditableArea.svelte';
@@ -113,6 +115,26 @@
         }
     }
 
+    function currentTableLine(): ParsedLine | null {
+        return filteredLines.find(l => l.type === 'table' && l.number === editor.cursorLine) ?? null;
+    }
+
+    function nextLineNumber(current: number): number {
+        for (const line of filteredLines) {
+            if (line.number > current) return line.number;
+        }
+        return current;
+    }
+
+    function prevLineNumber(current: number): number {
+        let prev = current;
+        for (const line of filteredLines) {
+            if (line.number >= current) break;
+            prev = line.number;
+        }
+        return prev;
+    }
+
     function handleContentChange(value: string) {
         editor.updateContent(value);
         triggerAutosave();
@@ -120,8 +142,22 @@
 
     function scrollCursorIntoView() {
         requestAnimationFrame(() => {
-            const el = document.querySelector(`[data-linenum="${editor.cursorLine}"]`);
-            if (el) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            const container = document.querySelector('.zen-content') || document.querySelector('.body');
+            if (!container) return;
+
+            const cursorEl = document.querySelector(`[data-linenum="${editor.cursorLine}"]`) as HTMLElement;
+            if (!cursorEl) return;
+
+            const marginPx = tools.scrollMargin * 28;
+
+            const containerRect = container.getBoundingClientRect();
+            const cursorRect = cursorEl.getBoundingClientRect();
+
+            if (cursorRect.bottom + marginPx > containerRect.bottom) {
+                container.scrollTop += (cursorRect.bottom + marginPx) - containerRect.bottom;
+            } else if (cursorRect.top - marginPx < containerRect.top) {
+                container.scrollTop -= containerRect.top - (cursorRect.top - marginPx);
+            }
         });
     }
 
@@ -170,8 +206,17 @@
                 key: 's',
                 ctrl: true,
                 shift: true,
-                handler: () => tools.toggle('spotlight'),
-                description: 'Toggle spotlight'
+                handler: () => {
+                    if (tools.isActive('spotlightSettings')) {
+                        tools.dismiss('spotlightSettings');
+                        tools.dismiss('spotlight');
+                    } else if (tools.isActive('spotlight')) {
+                        tools.toggle('spotlightSettings');
+                    } else {
+                        tools.toggle('spotlight');
+                    }
+                },
+                description: 'Toggle spotlight / settings'
             }),
             register({
                 key: 'l',
@@ -182,10 +227,19 @@
             register({
                 key: 'ArrowUp',
                 handler: () => {
-                    if (!editor.editMode && editor.activeFile) {
-                        const newLine = Math.max(1, editor.cursorLine - 1);
-                        editor.setCursor(newLine, editor.cursorCol);
-                        scrollCursorIntoView();
+                    if (editor.editMode || tools.isActive('commandPalette')) return false;
+                    if (editor.activeFile) {
+                        const tbl = currentTableLine();
+                        if (tbl && editor.tableRow > 0) {
+                            editor.tableRow--;
+                        } else if (tbl && editor.tableRow === 0) {
+                            editor.tableRow = -1;
+                        } else {
+                            editor.tableRow = -1;
+                            const newLine = prevLineNumber(editor.cursorLine);
+                            editor.setCursor(newLine, editor.cursorCol);
+                            scrollCursorIntoView();
+                        }
                     }
                 },
                 description: 'Move cursor up'
@@ -193,14 +247,41 @@
             register({
                 key: 'ArrowDown',
                 handler: () => {
-                    if (!editor.editMode && editor.activeFile) {
-                        const maxLine = lines.length;
-                        const newLine = Math.min(maxLine, editor.cursorLine + 1);
-                        editor.setCursor(newLine, editor.cursorCol);
-                        scrollCursorIntoView();
+                    if (editor.editMode || tools.isActive('commandPalette')) return false;
+                    if (editor.activeFile) {
+                        const tbl = currentTableLine();
+                        if (tbl && editor.tableRow >= 0 && tbl.table && editor.tableRow < tbl.table.rows.length - 1) {
+                            editor.tableRow++;
+                        } else {
+                            editor.tableRow = -1;
+                            const newLine = nextLineNumber(editor.cursorLine);
+                            editor.setCursor(newLine, editor.cursorCol);
+                            scrollCursorIntoView();
+                        }
                     }
                 },
                 description: 'Move cursor down'
+            }),
+            register({
+                key: 'ArrowRight',
+                handler: () => {
+                    if (editor.editMode || tools.isActive('commandPalette')) return false;
+                    const tbl = currentTableLine();
+                    if (tbl && tbl.table && editor.tableRow < 0) {
+                        editor.tableRow = 0;
+                    }
+                },
+                description: 'Enter table'
+            }),
+            register({
+                key: 'ArrowLeft',
+                handler: () => {
+                    if (editor.editMode || tools.isActive('commandPalette')) return false;
+                    if (editor.tableRow >= 0) {
+                        editor.tableRow = -1;
+                    }
+                },
+                description: 'Exit table'
             }),
             register({
                 key: 'ArrowUp',
@@ -301,6 +382,12 @@
                     }
                 },
                 description: 'Toggle split view'
+            }),
+            register({
+                key: '/',
+                ctrl: true,
+                handler: () => tools.toggle('shortcutHelp'),
+                description: 'Show keyboard shortcuts'
             })
         ];
         const cmdUnsubs = [
@@ -349,6 +436,9 @@
                     a.click();
                     URL.revokeObjectURL(url);
                 }
+            } }),
+            registerCommand({ id: 'super-dark', label: 'Super Dark', description: 'Toggle pure black background', handler: () => {
+                document.documentElement.classList.toggle('super-dark');
             } })
         ];
         return () => {
@@ -400,6 +490,7 @@
                                     cursorLine={editor.cursorLine}
                                     selectLine={tools.isActive('selectLine') ? tools.selectLineVariant : 'off'}
                                     marked={editor.activeFile ? editor.getMarks(editor.activeFile.path).includes(line.number) : false}
+                                    activeTableRow={line.number === editor.cursorLine ? editor.tableRow : -1}
                                 />
                             {/each}
                         </div>
@@ -457,6 +548,7 @@
                                     cursorLine={editor.cursorLine}
                                     selectLine={tools.isActive('selectLine') ? tools.selectLineVariant : 'off'}
                                     marked={editor.activeFile ? editor.getMarks(editor.activeFile.path).includes(line.number) : false}
+                                    activeTableRow={line.number === editor.cursorLine ? editor.tableRow : -1}
                                 />
                             {/each}
                         </div>
@@ -513,6 +605,12 @@
     {/if}
     {#if tools.isActive('commandPalette')}
         <CommandPalette onclose={() => tools.dismiss('commandPalette')} />
+    {/if}
+    {#if tools.isActive('shortcutHelp')}
+        <ShortcutHelp onclose={() => tools.dismiss('shortcutHelp')} />
+    {/if}
+    {#if tools.isActive('spotlightSettings')}
+        <SpotlightSettings onclose={() => tools.dismiss('spotlightSettings')} />
     {/if}
 </div>
 

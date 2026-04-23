@@ -72,6 +72,36 @@ export async function putFile(repoPath: string, filePath: string, content: strin
 	await writeFile(resolved, content, 'utf-8');
 }
 
+export async function searchFiles(root: string, query: string, maxResults = 50): Promise<FileEntry[]> {
+	const q = query.toLowerCase();
+	const results: FileEntry[] = [];
+
+	async function walk(dir: string) {
+		if (results.length >= maxResults) return;
+		let entries;
+		try {
+			entries = await readdir(dir, { withFileTypes: true });
+		} catch {
+			return;
+		}
+		for (const entry of entries) {
+			if (results.length >= maxResults) return;
+			if (entry.name.startsWith('.')) continue;
+			const fullPath = join(dir, entry.name);
+
+			if (entry.isDirectory()) {
+				if (entry.name === 'node_modules') continue;
+				await walk(fullPath);
+			} else if (extname(entry.name) === '.md' && entry.name.toLowerCase().includes(q)) {
+				results.push({ path: fullPath, name: entry.name, type: 'file' });
+			}
+		}
+	}
+
+	await walk(resolve(root));
+	return results;
+}
+
 export async function getFileAbsolute(absolutePath: string): Promise<string> {
 	return readFile(resolve(absolutePath), 'utf-8');
 }

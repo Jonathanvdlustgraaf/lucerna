@@ -35,13 +35,24 @@
         return segments;
     }
 
+    function scrollActiveIntoView() {
+        requestAnimationFrame(() => {
+            const el = document.querySelector('.results li.active');
+            if (el) el.scrollIntoView({ block: 'nearest' });
+        });
+    }
+
     function handleKeydown(e: KeyboardEvent) {
         if (e.key === 'ArrowDown') {
             e.preventDefault();
+            e.stopPropagation();
             activeIndex = Math.min(activeIndex + 1, results.length - 1);
+            scrollActiveIntoView();
         } else if (e.key === 'ArrowUp') {
             e.preventDefault();
+            e.stopPropagation();
             activeIndex = Math.max(activeIndex - 1, 0);
+            scrollActiveIntoView();
         } else if (e.key === 'Enter') {
             e.preventDefault();
             results[activeIndex]?.handler();
@@ -54,7 +65,7 @@
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div class="backdrop" onclick={onclose} onkeydown={handleKeydown}>
+<div class="backdrop" onclick={onclose}>
     <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
     <div class="palette" role="dialog" aria-modal="true" aria-label="Command Palette" onclick={(e) => e.stopPropagation()} onkeydown={handleKeydown}>
         <div class="input-row">

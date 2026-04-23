@@ -39,8 +39,8 @@
     }
     .zen-content {
         width: 100%;
-        max-width: 80ch;
-        padding: var(--space-xl) 20%;
+        max-width: 100ch;
+        padding: var(--space-xl) var(--space-lg);
         overflow-y: auto;
     }
     .zen-peek {

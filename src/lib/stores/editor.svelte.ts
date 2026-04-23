@@ -10,6 +10,7 @@ class EditorState {
 	activeIndex = $state(0);
 	cursorLine = $state(1);
 	cursorCol = $state(1);
+	tableRow = $state(-1);
 	editMode = $state(false);
 
 	get activeFile(): OpenFile | undefined {
@@ -42,6 +43,7 @@ class EditorState {
 	setCursor(line: number, col: number) {
 		this.cursorLine = line;
 		this.cursorCol = col;
+		this.tableRow = -1;
 	}
 
 	markDirty() {

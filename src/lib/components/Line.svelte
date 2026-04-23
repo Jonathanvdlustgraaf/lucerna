@@ -12,6 +12,7 @@
 		selectLine = 'off' as 'off' | 'bright' | 'underline' | 'weight' | 'glow',
 		folded = false,
 		marked = false,
+		activeTableRow = -1,
 		onfold
 	}: {
 		line: ParsedLine;
@@ -24,6 +25,7 @@
 		selectLine?: 'off' | 'bright' | 'underline' | 'weight' | 'glow';
 		folded?: boolean;
 		marked?: boolean;
+		activeTableRow?: number;
 		onfold?: () => void;
 	} = $props();
 
@@ -94,6 +96,25 @@
 	<span class="content">
 		{#if line.type === 'blank'}
 			&nbsp;
+		{:else if line.type === 'table' && line.table}
+			<table class="md-table">
+				<thead>
+					<tr>
+						{#each line.table.headers as header}
+							<th>{header}</th>
+						{/each}
+					</tr>
+				</thead>
+				<tbody>
+					{#each line.table.rows as row, ri}
+						<tr class:table-row-active={isCurrent && activeTableRow === ri}>
+							{#each row as cell}
+								<td>{cell}</td>
+							{/each}
+						</tr>
+					{/each}
+				</tbody>
+			</table>
 		{:else}
 			{line.content}
 		{/if}
@@ -193,4 +214,29 @@
 	.line[data-type='meta'] { padding: var(--space-sm) 0; }
 	.line[data-type='meta'] .content { border-bottom: 1px solid var(--border); }
 	.line[data-type='blank'] .content { height: 1.75em; }
+	.md-table {
+		border-collapse: collapse;
+		font-family: var(--font-mono);
+		font-size: 13px;
+		margin: var(--space-xs) 0;
+		width: 100%;
+	}
+	.md-table th,
+	.md-table td {
+		border: 1px solid var(--border);
+		padding: 4px 10px;
+		text-align: left;
+	}
+	.md-table th {
+		color: var(--text-bright);
+		font-weight: 600;
+		background: rgba(212, 168, 67, 0.06);
+	}
+	.md-table td {
+		color: var(--text);
+	}
+	.md-table tr.table-row-active td {
+		background: rgba(212, 168, 67, 0.1);
+		color: var(--text-bright);
+	}
 </style>
