@@ -1,99 +1,58 @@
 <script lang="ts">
-    interface FileTreeEntry {
-        path: string;
-        name: string;
-        type: 'file' | 'directory';
-    }
+    import { onMount } from 'svelte';
 
-    interface TreeNode {
-        name: string;
+    interface BrowseEntry {
         path: string;
+        name: string;
         type: 'file' | 'directory';
-        children: TreeNode[];
     }
 
     let {
-        fileTree = [],
         activePath = '',
         onselect,
         onclose
     }: {
-        fileTree: FileTreeEntry[];
         activePath: string;
         onselect: (path: string, name: string) => void;
         onclose: () => void;
     } = $props();
 
-    let expandedDirs = $state<Set<string>>(new Set());
+    let currentPath = $state('/home');
+    let pathInput = $state('/home');
+    let entries = $state<BrowseEntry[]>([]);
+    let loading = $state(false);
+    let errorMsg = $state('');
 
-    // Build hierarchical tree from flat list
-    let tree = $derived.by(() => {
-        const root: TreeNode[] = [];
-        const dirMap = new Map<string, TreeNode>();
-
-        // First pass: create directory nodes
-        for (const entry of fileTree) {
-            if (entry.type === 'directory') {
-                const node: TreeNode = { name: entry.name, path: entry.path, type: 'directory', children: [] };
-                dirMap.set(entry.path, node);
+    async function browse(path: string) {
+        loading = true;
+        errorMsg = '';
+        try {
+            const res = await fetch(`/api/files/browse?path=${encodeURIComponent(path)}`);
+            if (!res.ok) {
+                errorMsg = 'Could not open directory';
+                return;
             }
+            const data: BrowseEntry[] = await res.json();
+            entries = data;
+            currentPath = path;
+            pathInput = path;
+        } catch {
+            errorMsg = 'Could not open directory';
+        } finally {
+            loading = false;
         }
+    }
 
-        // Second pass: place files and directories into parents
-        for (const entry of fileTree) {
-            const parts = entry.path.split('/');
-            const parentPath = parts.slice(0, -1).join('/');
+    function goUp() {
+        const parent = currentPath.replace(/\/[^/]+\/?$/, '') || '/';
+        browse(parent);
+    }
 
-            if (entry.type === 'directory') {
-                const node = dirMap.get(entry.path)!;
-                const parent = dirMap.get(parentPath);
-                if (parent) {
-                    parent.children.push(node);
-                } else {
-                    root.push(node);
-                }
-            } else {
-                const node: TreeNode = { name: entry.name, path: entry.path, type: 'file', children: [] };
-                const parent = dirMap.get(parentPath);
-                if (parent) {
-                    parent.children.push(node);
-                } else {
-                    root.push(node);
-                }
-            }
+    function handlePathKeydown(e: KeyboardEvent) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            browse(pathInput.trim());
         }
-
-        // Sort: directories first, then files, alphabetical within each
-        function sortNodes(nodes: TreeNode[]) {
-            nodes.sort((a, b) => {
-                if (a.type !== b.type) return a.type === 'directory' ? -1 : 1;
-                return a.name.localeCompare(b.name);
-            });
-            for (const n of nodes) {
-                if (n.children.length > 0) sortNodes(n.children);
-            }
-        }
-        sortNodes(root);
-
-        // Auto-expand directories on first render
-        if (expandedDirs.size === 0) {
-            for (const entry of fileTree) {
-                if (entry.type === 'directory') {
-                    expandedDirs.add(entry.path);
-                }
-            }
-        }
-
-        return root;
-    });
-
-    function toggleDir(path: string) {
-        if (expandedDirs.has(path)) {
-            expandedDirs.delete(path);
-        } else {
-            expandedDirs.add(path);
-        }
-        expandedDirs = new Set(expandedDirs); // trigger reactivity
     }
 
     function handleKeydown(e: KeyboardEvent) {
@@ -102,54 +61,62 @@
             onclose();
         }
     }
+
+    onMount(() => {
+        browse(currentPath);
+    });
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
 
 <aside class="file-tree">
     <div class="header">
-        <span class="header-title">FILES</span>
+        <button class="nav-btn" onclick={goUp} title="Go up one level">..</button>
+        <input
+            class="path-input"
+            type="text"
+            bind:value={pathInput}
+            onkeydown={handlePathKeydown}
+            spellcheck="false"
+        />
         <button class="header-close" onclick={onclose}>x</button>
     </div>
     <nav class="tree">
-        {#each tree as node}
-            {@render treeNode(node, 0)}
-        {/each}
+        {#if loading}
+            <div class="status">Loading...</div>
+        {:else if errorMsg}
+            <div class="status error">{errorMsg}</div>
+        {:else if entries.length === 0}
+            <div class="status">Empty directory</div>
+        {:else}
+            {#each entries as entry}
+                {#if entry.type === 'directory'}
+                    <button
+                        class="tree-item tree-dir"
+                        onclick={() => browse(entry.path)}
+                    >
+                        <span class="tree-icon">▸</span>
+                        <span class="tree-name">{entry.name}</span>
+                    </button>
+                {:else}
+                    <button
+                        class="tree-item tree-file"
+                        class:active={entry.path === activePath}
+                        onclick={() => onselect(entry.path, entry.name)}
+                    >
+                        <span class="tree-icon file-icon">-</span>
+                        <span class="tree-name">{entry.name}</span>
+                    </button>
+                {/if}
+            {/each}
+        {/if}
     </nav>
 </aside>
 
-{#snippet treeNode(node: TreeNode, depth: number)}
-    {#if node.type === 'directory'}
-        <button
-            class="tree-item tree-dir"
-            style="padding-left: {12 + depth * 16}px"
-            onclick={() => toggleDir(node.path)}
-        >
-            <span class="tree-icon">{expandedDirs.has(node.path) ? '▾' : '▸'}</span>
-            <span class="tree-name">{node.name}</span>
-        </button>
-        {#if expandedDirs.has(node.path)}
-            {#each node.children as child}
-                {@render treeNode(child, depth + 1)}
-            {/each}
-        {/if}
-    {:else}
-        <button
-            class="tree-item tree-file"
-            class:active={node.path === activePath}
-            style="padding-left: {12 + depth * 16}px"
-            onclick={() => onselect(node.path, node.name)}
-        >
-            <span class="tree-icon file-icon">-</span>
-            <span class="tree-name">{node.name}</span>
-        </button>
-    {/if}
-{/snippet}
-
 <style>
     .file-tree {
-        width: 240px;
-        min-width: 240px;
+        width: 260px;
+        min-width: 260px;
         background: var(--surface);
         border-right: 1px solid var(--border);
         display: flex;
@@ -166,17 +133,44 @@
     .header {
         display: flex;
         align-items: center;
-        justify-content: space-between;
-        padding: var(--space-sm) var(--space-md);
+        gap: 4px;
+        padding: 6px 8px;
         border-bottom: 1px solid var(--border);
     }
 
-    .header-title {
+    .nav-btn {
+        background: none;
+        border: none;
+        color: var(--muted);
+        font-family: var(--font-mono);
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        padding: 2px 6px;
+        border-radius: 4px;
+        flex-shrink: 0;
+        transition: all 150ms ease-out;
+    }
+    .nav-btn:hover {
+        background: var(--border);
+        color: var(--text);
+    }
+
+    .path-input {
+        flex: 1;
+        min-width: 0;
+        background: none;
+        border: 1px solid transparent;
+        border-radius: 4px;
+        color: var(--text);
         font-family: var(--font-mono);
         font-size: 11px;
-        font-weight: 500;
-        color: var(--muted);
-        letter-spacing: 0.05em;
+        padding: 3px 6px;
+        outline: none;
+        transition: border-color 150ms ease-out;
+    }
+    .path-input:focus {
+        border-color: var(--accent);
     }
 
     .header-close {
@@ -188,6 +182,7 @@
         cursor: pointer;
         padding: 2px 6px;
         border-radius: 4px;
+        flex-shrink: 0;
         transition: all 150ms ease-out;
     }
     .header-close:hover {
@@ -199,6 +194,16 @@
         flex: 1;
         overflow-y: auto;
         padding: var(--space-xs) 0;
+    }
+
+    .status {
+        padding: 12px;
+        font-family: var(--font-mono);
+        font-size: 12px;
+        color: var(--muted);
+    }
+    .status.error {
+        color: var(--accent);
     }
 
     .tree-item {
