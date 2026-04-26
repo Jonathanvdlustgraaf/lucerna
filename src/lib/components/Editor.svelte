@@ -16,7 +16,7 @@
     import { tools } from '$lib/stores/tools.svelte';
     import { git } from '$lib/stores/git.svelte';
     import { register, handleKeydown } from '$lib/services/keyboard';
-    import { registerCommand } from '$lib/services/commands';
+    import { registerCommand, NEW_FILE_COMMAND_ID } from '$lib/services/commands';
     import { setupAutosave, triggerAutosave } from '$lib/services/autosave';
     import { parseLines } from '$lib/services/markdown';
     import type { ParsedLine } from '$lib/services/markdown';
@@ -113,6 +113,26 @@
             editor.markClean(file.path);
             git.refresh();
         }
+    }
+
+    async function createFile(dirPath: string, filename: string) {
+        const name = filename.endsWith('.md') ? filename : `${filename}.md`;
+        const fullPath = `${dirPath}/${name}`;
+        const res = await fetch(`/api/files/${encodeURIComponent(fullPath)}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ content: '' })
+        });
+        if (res.ok) {
+            await openFile(fullPath, name);
+            if (!editor.editMode) editor.toggleEdit();
+        }
+    }
+
+    function activeFileDir(): string {
+        const path = editor.activeFile?.path;
+        if (!path) return '/home';
+        return path.replace(/\/[^/]+$/, '') || '/home';
     }
 
     function currentTableLine(): ParsedLine | null {
@@ -439,7 +459,8 @@
             } }),
             registerCommand({ id: 'super-dark', label: 'Super Dark', description: 'Toggle pure black background', handler: () => {
                 document.documentElement.classList.toggle('super-dark');
-            } })
+            } }),
+            registerCommand({ id: NEW_FILE_COMMAND_ID, label: 'New File', description: 'Create a new markdown file', handler: () => {} })
         ];
         return () => {
             cleanupAutosave();
@@ -460,6 +481,10 @@
             activePath={editor.activeFile?.path ?? ''}
             onselect={(path, name) => openFile(path, name)}
             onclose={() => tools.dismiss('fileTree')}
+            oncreate={async (path, name) => {
+                await openFile(path, name);
+                if (!editor.editMode) editor.toggleEdit();
+            }}
         />
     {/if}
     <div class="body">
@@ -604,7 +629,10 @@
         />
     {/if}
     {#if tools.isActive('commandPalette')}
-        <CommandPalette onclose={() => tools.dismiss('commandPalette')} />
+        <CommandPalette
+            onclose={() => tools.dismiss('commandPalette')}
+            oncreate={(filename) => createFile(activeFileDir(), filename)}
+        />
     {/if}
     {#if tools.isActive('shortcutHelp')}
         <ShortcutHelp onclose={() => tools.dismiss('shortcutHelp')} />
