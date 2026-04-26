@@ -10,11 +10,13 @@
     let {
         activePath = '',
         onselect,
-        onclose
+        onclose,
+        oncreate
     }: {
         activePath: string;
         onselect: (path: string, name: string) => void;
         onclose: () => void;
+        oncreate: (path: string, name: string) => void;
     } = $props();
 
     let mode = $state<'browse' | 'search'>('browse');
@@ -25,6 +27,12 @@
     let entries = $state<BrowseEntry[]>([]);
     let loading = $state(false);
     let errorMsg = $state('');
+
+    // New file creation state
+    let creatingFile = $state(false);
+    let newFileName = $state('');
+    let newFileInput = $state<HTMLInputElement | null>(null);
+    let createError = $state('');
 
     // Search state
     let searchQuery = $state('');
@@ -132,6 +140,57 @@
         }
     }
 
+    function startCreate() {
+        creatingFile = true;
+        newFileName = '';
+        createError = '';
+        requestAnimationFrame(() => newFileInput?.focus());
+    }
+
+    function cancelCreate() {
+        creatingFile = false;
+        newFileName = '';
+        createError = '';
+    }
+
+    async function confirmCreate() {
+        const raw = newFileName.trim();
+        if (!raw) return;
+        const name = raw.endsWith('.md') ? raw : `${raw}.md`;
+        const fullPath = `${currentPath}/${name}`;
+
+        try {
+            const res = await fetch(`/api/files/${encodeURIComponent(fullPath)}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content: '' })
+            });
+            if (!res.ok) {
+                createError = 'Could not create file';
+                return;
+            }
+            creatingFile = false;
+            newFileName = '';
+            createError = '';
+            await browse(currentPath);
+            oncreate(fullPath, name);
+        } catch {
+            createError = 'Could not create file';
+        }
+    }
+
+    function handleNewFileKeydown(e: KeyboardEvent) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            e.stopPropagation();
+            confirmCreate();
+        } else if (e.key === 'Escape') {
+            e.preventDefault();
+            e.stopPropagation();
+            cancelCreate();
+        }
+    }
+
     onMount(() => {
         browse(currentPath);
     });
@@ -156,15 +215,33 @@
                 onkeydown={handlePathKeydown}
                 spellcheck="false"
             />
+            <button class="nav-btn" onclick={startCreate} title="New file">+</button>
         </div>
         <nav class="tree">
             {#if loading}
                 <div class="status">Loading...</div>
             {:else if errorMsg}
                 <div class="status error">{errorMsg}</div>
-            {:else if entries.length === 0}
+            {:else if entries.length === 0 && !creatingFile}
                 <div class="status">Empty directory</div>
             {:else}
+                {#if creatingFile}
+                    <div class="create-row">
+                        <span class="tree-icon file-icon">-</span>
+                        <input
+                            bind:this={newFileInput}
+                            class="create-input"
+                            type="text"
+                            bind:value={newFileName}
+                            onkeydown={handleNewFileKeydown}
+                            placeholder="filename.md"
+                            spellcheck="false"
+                        />
+                    </div>
+                    {#if createError}
+                        <div class="status error">{createError}</div>
+                    {/if}
+                {/if}
                 {#each entries as entry}
                     {#if entry.type === 'directory'}
                         <button
@@ -395,6 +472,30 @@
 
     .tree-file .file-icon {
         color: var(--border);
+    }
+
+    .create-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 12px;
+    }
+
+    .create-input {
+        flex: 1;
+        min-width: 0;
+        background: none;
+        border: 1px solid var(--accent);
+        border-radius: 4px;
+        color: var(--text);
+        font-family: var(--font-mono);
+        font-size: 13px;
+        padding: 2px 6px;
+        outline: none;
+    }
+
+    .create-input::placeholder {
+        color: var(--muted);
     }
 
     .tree-name {
