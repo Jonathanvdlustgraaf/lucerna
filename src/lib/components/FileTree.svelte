@@ -71,7 +71,7 @@
         }
         searchLoading = true;
         try {
-            const res = await fetch(`/api/files/search?q=${encodeURIComponent(q)}&root=/home`);
+            const res = await fetch(`/api/files/search?q=${encodeURIComponent(q)}`);
             if (res.ok) {
                 searchResults = await res.json();
             }

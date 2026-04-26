@@ -1,4 +1,4 @@
-export type LineType = 'h1' | 'h2' | 'h3' | 'p' | 'li' | 'blank' | 'meta' | 'table';
+export type LineType = 'h1' | 'h2' | 'h3' | 'p' | 'li' | 'blank' | 'meta' | 'table' | 'blockquote';
 
 export interface TableData {
 	headers: string[];
@@ -25,6 +25,31 @@ function isSeparatorRow(line: string): boolean {
 
 function parseCells(line: string): string[] {
 	return line.trim().slice(1, -1).split('|').map(c => c.trim());
+}
+
+function escapeHtml(text: string): string {
+	return text
+		.replace(/&/g, '&amp;')
+		.replace(/</g, '&lt;')
+		.replace(/>/g, '&gt;')
+		.replace(/"/g, '&quot;');
+}
+
+export function renderInline(text: string): string {
+	let s = escapeHtml(text);
+	// Bold: **text** or __text__
+	s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+	s = s.replace(/__(.+?)__/g, '<strong>$1</strong>');
+	// Italic: *text* or _text_
+	s = s.replace(/\*(.+?)\*/g, '<em>$1</em>');
+	s = s.replace(/_(.+?)_/g, '<em>$1</em>');
+	// Strikethrough: ~~text~~
+	s = s.replace(/~~(.+?)~~/g, '<del>$1</del>');
+	// Inline code: `code`
+	s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
+	// Links: [text](url)
+	s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+	return s;
 }
 
 export function parseLines(markdown: string): ParsedLine[] {
@@ -63,6 +88,7 @@ export function parseLines(markdown: string): ParsedLine[] {
 		else if (trimmed.startsWith('- ')) { result.push({ type: 'li', content: trimmed.slice(2), raw, number: i + 1 }); }
 		else if (trimmed.startsWith('* ')) { result.push({ type: 'li', content: trimmed.slice(2), raw, number: i + 1 }); }
 		else if (trimmed.startsWith('---')) { result.push({ type: 'meta', content: '', raw, number: i + 1 }); }
+		else if (trimmed.startsWith('> ')) { result.push({ type: 'blockquote', content: trimmed.slice(2), raw, number: i + 1 }); }
 		else { result.push({ type: 'p', content: raw, raw, number: i + 1 }); }
 
 		i++;

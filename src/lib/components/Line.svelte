@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { ParsedLine } from '$lib/services/markdown';
+	import { renderInline } from '$lib/services/markdown';
 
 	let {
 		line,
@@ -101,7 +102,7 @@
 				<thead>
 					<tr>
 						{#each line.table.headers as header}
-							<th>{header}</th>
+							<th>{@html renderInline(header)}</th>
 						{/each}
 					</tr>
 				</thead>
@@ -109,14 +110,16 @@
 					{#each line.table.rows as row, ri}
 						<tr class:table-row-active={isCurrent && activeTableRow === ri}>
 							{#each row as cell}
-								<td>{cell}</td>
+								<td>{@html renderInline(cell)}</td>
 							{/each}
 						</tr>
 					{/each}
 				</tbody>
 			</table>
+		{:else if line.type === 'blockquote'}
+			<blockquote class="md-blockquote">{@html renderInline(line.content)}</blockquote>
 		{:else}
-			{line.content}
+			{@html renderInline(line.content)}
 		{/if}
 	</span>
 </div>
@@ -214,6 +217,32 @@
 	.line[data-type='meta'] { padding: var(--space-sm) 0; }
 	.line[data-type='meta'] .content { border-bottom: 1px solid var(--border); }
 	.line[data-type='blank'] .content { height: 1.75em; }
+	.md-blockquote {
+		margin: 0;
+		padding: 0 var(--space-md);
+		border-left: 3px solid var(--accent);
+		color: var(--muted);
+		font-style: italic;
+		font-family: var(--font-body);
+		font-size: 15px;
+	}
+	/* Inline formatting */
+	:global(.content strong) { font-weight: 600; color: var(--text-bright); }
+	:global(.content em) { font-style: italic; }
+	:global(.content del) { text-decoration: line-through; opacity: 0.6; }
+	:global(.content code) {
+		font-family: var(--font-mono);
+		font-size: 0.85em;
+		background: rgba(212, 168, 67, 0.1);
+		border-radius: 3px;
+		padding: 0 4px;
+	}
+	:global(.content a) {
+		color: var(--accent);
+		text-decoration: none;
+		border-bottom: 1px solid rgba(212, 168, 67, 0.3);
+	}
+	:global(.content a:hover) { border-bottom-color: var(--accent); }
 	.md-table {
 		border-collapse: collapse;
 		font-family: var(--font-mono);
