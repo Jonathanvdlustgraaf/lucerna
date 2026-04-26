@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { searchCommands } from '$lib/services/commands';
+    import { searchCommands, NEW_FILE_COMMAND_ID } from '$lib/services/commands';
     import { onMount } from 'svelte';
 
     let { onclose, oncreate }: {
@@ -13,7 +13,7 @@
     let newFileName = $state('');
     let newFileInput = $state<HTMLInputElement | null>(null);
     let results = $derived(searchCommands(query));
-    let inputEl: HTMLInputElement;
+    let inputEl = $state<HTMLInputElement | null>(null);
 
     $effect(() => {
         // Reset active index whenever query changes
@@ -48,6 +48,12 @@
         });
     }
 
+    function enterNewFileMode() {
+        mode = 'newFile';
+        newFileName = '';
+        requestAnimationFrame(() => newFileInput?.focus());
+    }
+
     function handleKeydown(e: KeyboardEvent) {
         if (mode === 'newFile') {
             if (e.key === 'Enter') {
@@ -80,10 +86,8 @@
             e.preventDefault();
             const selected = results[activeIndex];
             if (!selected) return;
-            if (selected.id === 'new-file') {
-                mode = 'newFile';
-                newFileName = '';
-                requestAnimationFrame(() => newFileInput?.focus());
+            if (selected.id === NEW_FILE_COMMAND_ID) {
+                enterNewFileMode();
             } else {
                 selected.handler();
                 onclose();
@@ -120,10 +124,8 @@
                             aria-selected={i === activeIndex}
                             class:active={i === activeIndex}
                             onclick={() => {
-                                if (result.id === 'new-file') {
-                                    mode = 'newFile';
-                                    newFileName = '';
-                                    requestAnimationFrame(() => newFileInput?.focus());
+                                if (result.id === NEW_FILE_COMMAND_ID) {
+                                    enterNewFileMode();
                                 } else {
                                     result.handler();
                                     onclose();
@@ -149,7 +151,7 @@
                     {/each}
                 </ul>
             {/if}
-        {:else}
+        {:else if mode === 'newFile'}
             <div class="input-row">
                 <span class="caret" aria-hidden="true">+</span>
                 <input

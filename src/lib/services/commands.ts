@@ -1,3 +1,5 @@
+export const NEW_FILE_COMMAND_ID = 'new-file';
+
 export interface Command {
     id: string;
     label: string;
