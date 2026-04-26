@@ -2,10 +2,16 @@
     import { searchCommands } from '$lib/services/commands';
     import { onMount } from 'svelte';
 
-    let { onclose }: { onclose: () => void } = $props();
+    let { onclose, oncreate }: {
+        onclose: () => void;
+        oncreate: (filename: string) => void;
+    } = $props();
 
     let query = $state('');
     let activeIndex = $state(0);
+    let mode = $state<'search' | 'newFile'>('search');
+    let newFileName = $state('');
+    let newFileInput = $state<HTMLInputElement | null>(null);
     let results = $derived(searchCommands(query));
     let inputEl: HTMLInputElement;
 
@@ -43,6 +49,23 @@
     }
 
     function handleKeydown(e: KeyboardEvent) {
+        if (mode === 'newFile') {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const raw = newFileName.trim();
+                if (!raw) return;
+                const name = raw.endsWith('.md') ? raw : `${raw}.md`;
+                oncreate(name);
+                onclose();
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                mode = 'search';
+                query = '';
+                requestAnimationFrame(() => inputEl?.focus());
+            }
+            return;
+        }
+
         if (e.key === 'ArrowDown') {
             e.preventDefault();
             e.stopPropagation();
@@ -55,8 +78,16 @@
             scrollActiveIntoView();
         } else if (e.key === 'Enter') {
             e.preventDefault();
-            results[activeIndex]?.handler();
-            onclose();
+            const selected = results[activeIndex];
+            if (!selected) return;
+            if (selected.id === 'new-file') {
+                mode = 'newFile';
+                newFileName = '';
+                requestAnimationFrame(() => newFileInput?.focus());
+            } else {
+                selected.handler();
+                onclose();
+            }
         } else if (e.key === 'Escape') {
             e.preventDefault();
             onclose();
@@ -68,45 +99,69 @@
 <div class="backdrop" onclick={onclose}>
     <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
     <div class="palette" role="dialog" aria-modal="true" aria-label="Command Palette" onclick={(e) => e.stopPropagation()} onkeydown={handleKeydown}>
-        <div class="input-row">
-            <span class="caret" aria-hidden="true">&gt;</span>
-            <input
-                bind:this={inputEl}
-                bind:value={query}
-                type="text"
-                placeholder="Type a command..."
-                autocomplete="off"
-                spellcheck="false"
-            />
-        </div>
-        {#if results.length > 0}
-            <ul class="results" role="listbox">
-                {#each results as result, i}
-                    <!-- svelte-ignore a11y_click_events_have_key_events -->
-                    <li
-                        role="option"
-                        aria-selected={i === activeIndex}
-                        class:active={i === activeIndex}
-                        onclick={() => { result.handler(); onclose(); }}
-                    >
-                        <span class="label">
-                            {#each highlightMatch(result.label, query) as segment}
-                                {#if segment.matched}
-                                    <span class="match">{segment.char}</span>
-                                {:else}
-                                    {segment.char}
-                                {/if}
-                            {/each}
-                        </span>
-                        {#if result.description}
-                            <span class="description">{result.description}</span>
-                        {/if}
-                        {#if result.shortcut}
-                            <span class="shortcut">{result.shortcut}</span>
-                        {/if}
-                    </li>
-                {/each}
-            </ul>
+        {#if mode === 'search'}
+            <div class="input-row">
+                <span class="caret" aria-hidden="true">&gt;</span>
+                <input
+                    bind:this={inputEl}
+                    bind:value={query}
+                    type="text"
+                    placeholder="Type a command..."
+                    autocomplete="off"
+                    spellcheck="false"
+                />
+            </div>
+            {#if results.length > 0}
+                <ul class="results" role="listbox">
+                    {#each results as result, i}
+                        <!-- svelte-ignore a11y_click_events_have_key_events -->
+                        <li
+                            role="option"
+                            aria-selected={i === activeIndex}
+                            class:active={i === activeIndex}
+                            onclick={() => {
+                                if (result.id === 'new-file') {
+                                    mode = 'newFile';
+                                    newFileName = '';
+                                    requestAnimationFrame(() => newFileInput?.focus());
+                                } else {
+                                    result.handler();
+                                    onclose();
+                                }
+                            }}
+                        >
+                            <span class="label">
+                                {#each highlightMatch(result.label, query) as segment}
+                                    {#if segment.matched}
+                                        <span class="match">{segment.char}</span>
+                                    {:else}
+                                        {segment.char}
+                                    {/if}
+                                {/each}
+                            </span>
+                            {#if result.description}
+                                <span class="description">{result.description}</span>
+                            {/if}
+                            {#if result.shortcut}
+                                <span class="shortcut">{result.shortcut}</span>
+                            {/if}
+                        </li>
+                    {/each}
+                </ul>
+            {/if}
+        {:else}
+            <div class="input-row">
+                <span class="caret" aria-hidden="true">+</span>
+                <input
+                    bind:this={newFileInput}
+                    bind:value={newFileName}
+                    type="text"
+                    placeholder="Enter filename..."
+                    autocomplete="off"
+                    spellcheck="false"
+                />
+            </div>
+            <div class="new-file-hint">Press Enter to create · Escape to go back</div>
         {/if}
     </div>
 </div>
@@ -221,5 +276,13 @@
 
     .match {
         color: var(--accent);
+    }
+
+    .new-file-hint {
+        padding: var(--space-sm) var(--space-md);
+        font-family: var(--font-mono);
+        font-size: 11px;
+        color: var(--muted);
+        border-top: 1px solid var(--border);
     }
 </style>
