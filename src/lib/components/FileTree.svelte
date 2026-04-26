@@ -11,12 +11,12 @@
         activePath = '',
         onselect,
         onclose,
-        oncreate
+        oncreate = () => {}
     }: {
         activePath: string;
         onselect: (path: string, name: string) => void;
         onclose: () => void;
-        oncreate: (path: string, name: string) => void;
+        oncreate?: (path: string, name: string) => void;
     } = $props();
 
     let mode = $state<'browse' | 'search'>('browse');
@@ -100,6 +100,7 @@
     }
 
     function handleKeydown(e: KeyboardEvent) {
+        if (creatingFile) return;
         if (e.key === 'Escape') {
             e.preventDefault();
             onclose();
@@ -132,6 +133,7 @@
     }
 
     function switchMode(m: 'browse' | 'search') {
+        if (creatingFile) cancelCreate();
         mode = m;
         if (m === 'search') {
             requestAnimationFrame(() => searchInput?.focus());
