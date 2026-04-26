@@ -124,9 +124,15 @@
             body: JSON.stringify({ content: '' })
         });
         if (res.ok) {
-            await openFile(fullPath, name);
-            if (!editor.editMode) editor.toggleEdit();
+            await openAndEdit(fullPath, name);
+        } else {
+            console.error(`Failed to create file: ${res.status} ${res.statusText}`);
         }
+    }
+
+    async function openAndEdit(path: string, name: string) {
+        await openFile(path, name);
+        if (!editor.editMode) editor.toggleEdit();
     }
 
     function activeFileDir(): string {
@@ -460,6 +466,7 @@
             registerCommand({ id: 'super-dark', label: 'Super Dark', description: 'Toggle pure black background', handler: () => {
                 document.documentElement.classList.toggle('super-dark');
             } }),
+            // Handler is intentionally empty: CommandPalette intercepts this id and enters newFile mode directly.
             registerCommand({ id: NEW_FILE_COMMAND_ID, label: 'New File', description: 'Create a new markdown file', handler: () => {} })
         ];
         return () => {
@@ -481,10 +488,7 @@
             activePath={editor.activeFile?.path ?? ''}
             onselect={(path, name) => openFile(path, name)}
             onclose={() => tools.dismiss('fileTree')}
-            oncreate={async (path, name) => {
-                await openFile(path, name);
-                if (!editor.editMode) editor.toggleEdit();
-            }}
+            oncreate={(path, name) => openAndEdit(path, name)}
         />
     {/if}
     <div class="body">
